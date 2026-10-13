@@ -1,6 +1,0 @@
-# Copy to .dev.vars for local development. In production set these as
-# encrypted variables in the Cloudflare dashboard (Pages > Settings > Variables).
-ADMIN_TOKEN=change-me-to-a-long-random-string
-IP_SALT=another-random-string
-# Optional: Cloudflare Turnstile bot protection (also set turnstileSiteKey in campaign.json)
-# TURNSTILE_SECRET=

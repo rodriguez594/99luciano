@@ -1,97 +1,60 @@
-# 99luciano.dk
+# 99 LUCIANO
 
-Official site for 99 Luciano. Right now it's a homepage plus a giveaway at **/campaigns**:
+Artist site for 99 LUCIANO, part of 99 (with 99MGMT, 99ENT and 99WRLDWIDE). It uses the same look as the other 99 sites, black on white. Plain HTML/CSS/JS, no build step.
 
-1. Follow @99luciano on Instagram and enter your username
-2. Listen to the 20–30 s snippets, then vote for the next release (one vote per username)
-3. You're in
+- `index.html`: homepage
+- `campaigns/`: the giveaway at 99luciano.dk/campaigns. Follow on Instagram, enter your username, listen to the snippets, vote. One vote per username.
+- `campaigns/config.js`: **edit this.** Songs, prize, end date and the Supabase keys
+- `campaigns/snippets/`: the MP3 snippets
+- `campaigns/admin.html`: results, follower check and winner draw
+- `main.js`: Danish translations and the language switch (English text lives in the HTML)
+- `styles.css`: the 99 look, black on white
+- `supabase/schema.sql`: the votes table and the functions the site calls
 
-Built as plain HTML/CSS/JS on **Cloudflare Pages**. Votes are stored in **Cloudflare D1** (a free SQLite database).
-There's no framework and no build step.
+This repo is public (needed for free GitHub Pages), so anything in it, including the snippets, is public.
 
-```
-public/                     static site (what visitors see)
-  index.html                homepage
-  campaigns/index.html      giveaway flow (mobile-first)
-  campaigns/campaign.json   ← edit this: songs, prize, end date, open/closed
-  campaigns/snippets/       ← put the snippet MP3s here
-  campaigns/admin.html      results, follower check, winner draw
-  assets/logo.svg           ← replace with the real 99 logo
-functions/api/              backend (Cloudflare Pages Functions)
-  vote.js                   POST /api/vote
-  admin/[[path]].js         /api/admin/* (token protected)
-schema.sql                  database table
-```
+## Votes (Supabase)
 
-## Why Cloudflare (not GitHub Pages)
+GitHub Pages can't store anything, so votes go to Supabase, the same setup as 99MS. You can use the 99MS project; every table here starts with `luciano_`.
 
-GitHub Pages can only serve static files. The giveaway has to **store votes and enforce one vote per person**,
-so it needs a backend. Cloudflare Pages gives you static hosting, serverless functions and a database in one place.
-It's free at this scale and has fast CDN delivery for the audio snippets. It also handles DNS for the .dk domain.
+1. Supabase → SQL Editor. Open `supabase/schema.sql` and set the campaign row at the bottom (id, song ids, end date) to match `campaigns/config.js`. Uncomment the `luciano_admin` line and put in a long password for the admin page. Run it.
+2. Supabase → Project Settings → API. Copy the project URL and the anon key into `SUPABASE` in `campaigns/config.js`.
 
-## Setup (one time, ~15 min)
-
-1. **Cloudflare account**: sign up at dash.cloudflare.com.
-2. **Point the domain to Cloudflare**: in Cloudflare choose *Add a domain* → `99luciano.dk` → Free plan.
-   Cloudflare shows two nameservers. Log in where you bought the domain (e.g. Simply, One.com, or
-   via Punktum dk) and replace the nameservers with Cloudflare's. This can take a few hours to take effect.
-3. **Create the database** (from this folder, needs Node 18+):
-   ```sh
-   npm install
-   npx wrangler login
-   npx wrangler d1 create 99luciano        # copy the database_id into wrangler.toml
-   npm run db:init                          # creates the votes table
-   ```
-4. **Deploy**:
-   ```sh
-   npm run deploy                           # first time: creates the "99luciano" Pages project
-   ```
-   Alternatively, in the dashboard go to *Workers & Pages → Create → Pages → Connect to Git*, pick this repo,
-   set the build output directory to `public` and leave the build command empty. After that, every push to `main` deploys automatically.
-   If you use Git deploys, check under *Settings → Bindings* that the D1 database is bound as `DB`.
-5. **Secrets**: in the Pages project go to *Settings → Variables and Secrets* and add these as encrypted values:
-   - `ADMIN_TOKEN`: a long random password for the admin page
-   - `IP_SALT`: any random string
-6. **Custom domain**: go to Pages project → *Custom domains* → add `99luciano.dk` (and `www.99luciano.dk`).
+The tables are locked. The site can only call the `luciano_*` functions, and those enforce one vote per username, the end date and at most 8 votes per network.
 
 ## Running a giveaway
 
-- Edit `public/campaigns/campaign.json`:
-  - `songs`: id, title and snippet path for each track (2–5 work best on a phone)
-  - `prize`, `headline`, `endsAt` (UTC), `announce`
-  - `open: false` closes voting immediately (the server enforces it too)
-  - `id`: change it for each new giveaway so votes start fresh
-- Add the MP3 snippets to `public/campaigns/snippets/`. Use 128–192 kbps so they load fast on mobile data.
-- Deploy.
+1. Put the snippets in `campaigns/snippets/` and list them in `campaigns/config.js` (id, title, file).
+2. Make sure the id, song ids and end date match the `luciano_campaigns` row in Supabase. The server checks against that row.
+3. Push to `main`.
 
-### Checking followers and drawing a winner
+To close early, run `update luciano_campaigns set open = false where id = '...'` in Supabase.
+For the next giveaway, use a new id so votes start from zero.
 
-Instagram's API does not let a website check whether a given user follows you. Unofficial "follow checker" bots
-scrape Instagram and can get your account restricted. This site uses a safe approach instead:
+### Checking followers and drawing the winner
 
-1. People enter their username when they vote.
-2. When the giveaway closes, request your data from Instagram: *Settings → Accounts Centre → Your information
-   and permissions → Download your information → Followers and following → JSON format*.
-3. Open **99luciano.dk/campaigns/admin**, enter your `ADMIN_TOKEN` and upload `followers_1.json`.
-   Each entry is marked as verified or not verified.
-4. Press **Draw winner**. It picks a random *verified* entry, so only real followers can win.
-   The admin page shows each song's vote count with verified followers counted separately.
+Instagram doesn't let a website check whether someone follows you. Bots that scrape Instagram can get the account restricted, so the check uses your own follower list:
 
-You can re-run step 3 at any time with a fresh export. Anyone who unfollowed drops out.
+1. When the giveaway ends, go to Instagram → Settings → Accounts Centre → Your information and permissions → Download your information → Followers and following, format JSON.
+2. Open 99luciano.dk/campaigns/admin.html, enter the admin password and upload `followers_1.json`. Every entry is marked as following or not.
+3. Press Draw. It picks a random entry from people who follow.
 
-## Anti-spam
+The results also show how many votes each song got from people who actually follow.
 
-- Each Instagram username can vote once (enforced by the database).
-- Each network/IP is capped at 8 entries per giveaway.
-- Fake usernames can't win because the draw only uses verified followers.
-- Optional: **Cloudflare Turnstile** (a free, mostly invisible CAPTCHA). Create a widget in the dashboard,
-  put the site key in `campaign.json` → `turnstileSiteKey` and the secret in a `TURNSTILE_SECRET` variable.
+## Publishing
 
-## Local development
+Deployed to GitHub Pages by `.github/workflows/pages.yml` on every push to `main`.
+One-time setup: repo Settings → Pages → Source: **GitHub Actions**.
+
+## Domain (99luciano.dk)
+
+1. At the DNS provider for 99luciano.dk, add `A` records for `99luciano.dk` → 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153, and a `CNAME` `www` → `rodriguez594.github.io`.
+2. Repo Settings → Pages → Custom domain: `99luciano.dk`. Tick "Enforce HTTPS" once GitHub has issued the certificate.
+
+## Run locally
 
 ```sh
-npm install
-cp .dev.vars.example .dev.vars
-npm run db:init:local
-npm run dev            # http://localhost:8788
+python3 -m http.server 8000
 ```
+
+Then open http://localhost:8000.

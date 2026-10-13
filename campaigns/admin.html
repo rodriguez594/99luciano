@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>99 LUCIANO | Giveaway admin</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css?v=dev">
+  <style>
+    .admin { max-width: 720px; margin: 0 auto; padding: 128px var(--gutter) 64px; }
+    .admin section { padding: 48px 0; border-top: 1px solid var(--line); }
+    .admin .label { margin-bottom: 24px; }
+    .admin .step__note { margin-bottom: 20px; }
+    .admin textarea { width: 100%; min-height: 140px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--line); background: none; font: 0.9rem/1.5 ui-monospace, Menlo, monospace; resize: vertical; }
+    .admin textarea:focus { outline: none; border-color: var(--text); }
+    .admin .btn { margin-top: 20px; }
+    .admin .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .result { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+    .result h3 { font-family: var(--serif); font-size: 1.5rem; line-height: 1.1; }
+    .result span { font-size: 0.75rem; letter-spacing: 0.1em; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+    .result i { grid-column: 1 / -1; display: block; height: 1px; background: var(--text); transform-origin: left; }
+    #winner { font-family: var(--serif); font-style: italic; font-size: clamp(2.4rem, 9vw, 4rem); line-height: 1.05; margin: 28px 0 8px; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <a href="../" class="nav__brand" aria-label="99 LUCIANO">
+      <img src="../assets/mark-160.png" alt="" width="34" height="31">
+      <span>LUCIANO</span>
+    </a>
+  </header>
+
+  <main class="admin">
+    <p class="label">Giveaway admin</p>
+    <h1 class="display" id="title">Results</h1>
+
+    <section id="login">
+      <div class="handle"><input id="key" type="password" placeholder="Admin password" autocomplete="current-password"></div>
+      <p class="step__note" id="login-note">The password you put in <code>luciano_admin</code> in Supabase.</p>
+      <button class="btn btn--solid" id="unlock">Unlock</button>
+    </section>
+
+    <div id="panel" hidden>
+      <section>
+        <p class="label" id="totals"></p>
+        <div id="results" style="border-top:1px solid var(--line)"></div>
+        <div class="actions">
+          <button class="btn" id="refresh">Refresh</button>
+          <button class="btn" id="export">Export CSV</button>
+        </div>
+      </section>
+
+      <section>
+        <p class="label">Check followers</p>
+        <p class="step__note">Instagram → Settings → Accounts Centre → Your information and permissions → Download your information →
+          Followers and following, format JSON. Upload <code>followers_1.json</code> here, or paste usernames one per line.
+          Anyone not on the list is marked as not following.</p>
+        <input type="file" id="file" accept=".json,.html,.txt,.csv">
+        <textarea id="followers" placeholder="username&#10;username"></textarea>
+        <button class="btn btn--solid" id="verify">Check entries</button>
+        <p class="step__note" id="verify-note"></p>
+      </section>
+
+      <section>
+        <p class="label">Draw winner</p>
+        <p class="step__note">Picks one random entry from people who follow.</p>
+        <button class="btn btn--solid" id="draw">Draw</button>
+        <p id="winner"></p>
+        <p class="step__note" id="winner-note"></p>
+      </section>
+    </div>
+  </main>
+
+  <script src="../main.js?v=dev"></script>
+  <script src="config.js?v=dev"></script>
+  <script src="admin.js?v=dev"></script>
+</body>
+</html>
