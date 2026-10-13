@@ -1,11 +1,15 @@
 (function () {
   var $ = function (id) { return document.getElementById(id); };
+  var all = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
   var STORE = 'luciano:entries';
+  var NOTIFY_STORE = 'luciano:notify';
   var LEN = CAMPAIGN.snippetSeconds || 30;
+  var POLL = 30000;
+  var IG_URL = 'https://instagram.com/' + CAMPAIGN.instagram;
 
+  var view = null;       // 'locked' | 'open' | 'done' | 'closed'
   var selected = null;   // song id picked for the vote
   var playing = null;    // song id loaded in the player
-  var entry = null;      // saved entry once voted
   var audio = new Audio();
   audio.preload = 'none';
 
@@ -30,52 +34,165 @@
     return Math.floor(sec / 60) + ':' + ('0' + (sec % 60)).slice(-2);
   }
 
-  function readStore() {
-    try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; }
+  function load(key) {
+    try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; }
   }
-  function writeStore(data) {
-    try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) {}
-  }
-
-  function row(id) { return document.querySelector('.track[data-id="' + id + '"]'); }
-
-  // ---------- text that depends on the language ----------
-
-  function renderText() {
-    var da = window.lang() === 'da';
-    $('prize').textContent = (da && CAMPAIGN.prizeDa) || CAMPAIGN.prize;
-    $('ends').textContent = new Date(CAMPAIGN.endsAt).toLocaleDateString(da ? 'da-DK' : 'en-GB', { day: 'numeric', month: 'long' });
-
-    var s = song(selected);
-    $('submit').textContent = s ? t('vote.for', 'Vote for “{song}”', { song: s.title }) : t('vote.pick', 'Pick a track');
-    document.querySelectorAll('.track__pick').forEach(function (el) { el.textContent = t('vote.yours', 'Your vote'); });
-
-    if (entry) renderDone();
+  function save(key, data) {
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
   }
 
-  // ---------- step 1 + 2 ----------
+  function show(name) {
+    if (view === name) return;
+    view = name;
+    $('intro').hidden = name === 'done' || name === 'closed';
+    ['locked', 'open', 'done', 'closed'].forEach(function (id) { $(id).hidden = id !== name; });
+    $('intro-label').textContent = name === 'open' ? 'Giveaway · Åben' : 'Giveaway';
+    if (name === 'done' || name === 'closed') window.scrollTo(0, 0);
+  }
 
-  var ig = 'https://instagram.com/' + CAMPAIGN.instagram;
-  $('follow').href = ig;
-  $('follow-handle').textContent = '@' + CAMPAIGN.instagram;
-  $('closed-ig').href = ig;
-  $('closed-ig').textContent = '@' + CAMPAIGN.instagram;
+  // ---------- static text ----------
+
+  $('prize').textContent = CAMPAIGN.prize;
+  $('ends').textContent = new Date(CAMPAIGN.endsAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'long' });
+  all('.ig-handle').forEach(function (el) { el.textContent = '@' + CAMPAIGN.instagram; });
+  all('.ig-link').forEach(function (el) { el.href = IG_URL; });
+  all('.goal').forEach(function (el) { el.textContent = CAMPAIGN.goal; });
+
+  // ---------- share the Instagram profile ----------
+
+  all('.share-ig').forEach(function (btn) {
+    var label = btn.innerHTML;
+    btn.addEventListener('click', function () {
+      var text = 'Følg @' + CAMPAIGN.instagram + ' på Instagram';
+      if (navigator.share) {
+        navigator.share({ title: '99 LUCIANO', text: text, url: IG_URL }).catch(function () {});
+        return;
+      }
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(IG_URL).then(function () {
+          btn.textContent = 'Link kopieret';
+          setTimeout(function () { btn.innerHTML = label; }, 2500);
+        });
+      }
+    });
+  });
+
+  // ---------- locked: follower count ----------
+
+  var shown = null;
+  function renderCount(followers, goal) {
+    var el = $('count');
+    var from = shown == null ? 0 : shown;
+    shown = followers;
+    $('bar').style.transform = 'scaleX(' + Math.min(1, followers / goal) + ')';
+    // Count up to the new number
+    var start = performance.now();
+    (function step(now) {
+      var p = Math.min(1, (now - start) / 900);
+      el.textContent = Math.round(from + (followers - from) * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+    })(start);
+  }
+
+  function apply(status) {
+    if (!status) return;
+    if (status.closed) { if (view !== 'done') show('closed'); return; }
+    if (view === 'done') return;
+    renderCount(status.followers, status.goal);
+    $('lock-note').textContent = 'Opdateres hvert 30. sekund';
+    show(status.unlocked ? 'open' : 'locked');
+  }
+
+  var timer = 0;
+  function poll() {
+    clearTimeout(timer);
+    giveawayStatus()
+      .then(apply, function () {
+        if (!view) show('locked');
+        $('lock-note').textContent = 'Kunne ikke hente antal følgere. Prøver igen om lidt.';
+      })
+      .then(function () {
+        if (view !== 'done' && view !== 'closed') timer = setTimeout(poll, POLL);
+      });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && view !== 'done' && view !== 'closed') poll();
+  });
+
+  // ---------- locked: notify me ----------
+
+  function showNotified(contact) {
+    $('notify-form').hidden = true;
+    $('notify-done').hidden = false;
+    $('notify-contact').textContent = contact;
+  }
+
+  var NOTIFY_ERRORS = {
+    bad_contact: 'Skriv en email eller et telefonnummer.',
+    too_many: 'For mange tilmeldinger fra dette netværk.',
+    open: 'Giveawayen er allerede åben. Stem herunder.'
+  };
+
+  function notify() {
+    var value = $('contact').value.trim();
+    var note = $('notify-note');
+    if (!value) {
+      note.textContent = NOTIFY_ERRORS.bad_contact;
+      note.classList.add('is-error');
+      $('contact').focus();
+      return;
+    }
+    var btn = $('notify');
+    btn.disabled = true;
+    btn.textContent = 'Sender…';
+    rpc('luciano_notify_me', { p_campaign: CAMPAIGN.id, p_contact: value })
+      .then(function (result) {
+        if (result === 'ok' || result === 'already') {
+          var saved = load(NOTIFY_STORE);
+          saved[CAMPAIGN.id] = value;
+          save(NOTIFY_STORE, saved);
+          showNotified(value);
+          return;
+        }
+        note.textContent = NOTIFY_ERRORS[result] || 'Noget gik galt. Prøv igen.';
+        note.classList.add('is-error');
+        if (result === 'open') poll();
+      }, function (e) {
+        note.textContent = e.message === 'offline' ? 'Ingen forbindelse. Prøv igen.' : e.message;
+        note.classList.add('is-error');
+      })
+      .then(function () {
+        btn.disabled = false;
+        btn.textContent = 'Giv mig besked';
+      });
+  }
+
+  $('notify').addEventListener('click', notify);
+  $('contact').addEventListener('keydown', function (e) { if (e.key === 'Enter') notify(); });
+  $('contact').addEventListener('input', function () {
+    $('notify-note').classList.remove('is-error');
+    $('notify-note').textContent = 'Vi bruger det kun til at sige til, når giveawayen åbner.';
+  });
+  var notified = load(NOTIFY_STORE)[CAMPAIGN.id];
+  if (notified) showNotified(notified);
+
+  // ---------- open: follow + username ----------
+
   $('follow').addEventListener('click', function () { $('follow').classList.add('is-done'); });
 
   var input = $('handle');
-  var note = $('handle-note');
-
+  var handleNote = $('handle-note');
   function handleError(show) {
-    note.classList.toggle('is-error', show);
-    note.innerHTML = show
-      ? t('vote.err.bad_handle', "That doesn't look like an Instagram username.")
-      : t('c.s2.note', 'We check that you follow before the winner is drawn.');
+    handleNote.classList.toggle('is-error', show);
+    handleNote.textContent = show
+      ? 'Det ligner ikke et Instagram-brugernavn.'
+      : 'Vi tjekker, at du følger, før vinderen bliver trukket.';
   }
-  input.addEventListener('input', function () { if (note.classList.contains('is-error')) handleError(false); });
+  input.addEventListener('input', function () { if (handleNote.classList.contains('is-error')) handleError(false); });
   input.addEventListener('blur', function () { handleError(!!input.value.trim() && !normalizeHandle(input.value)); });
   input.addEventListener('keydown', function (e) { if (e.key === 'Enter') input.blur(); });
 
-  // ---------- step 3: snippets ----------
+  // ---------- open: snippets ----------
 
   CAMPAIGN.songs.forEach(function (s) {
     var li = document.createElement('li');
@@ -86,23 +203,25 @@
     btn.setAttribute('role', 'radio');
     btn.setAttribute('aria-checked', 'false');
     btn.innerHTML = '<span class="track__btn" aria-hidden="true"></span><span class="track__name"></span>' +
-      '<span class="track__time">' + fmt(LEN) + '</span><span class="track__pick" hidden></span><span class="track__bar"></span>';
+      '<span class="track__time">' + fmt(LEN) + '</span><span class="track__pick" hidden>Din stemme</span><span class="track__bar"></span>';
     btn.querySelector('.track__name').textContent = s.title;
     btn.addEventListener('click', function () { tap(s); });
     li.appendChild(btn);
     $('tracks').appendChild(li);
   });
 
+  function row(id) { return document.querySelector('.track[data-id="' + id + '"]'); }
+
   function tap(s) {
     selected = s.id;
-    document.querySelectorAll('.track').forEach(function (el) {
+    all('.track').forEach(function (el) {
       var on = el.dataset.id === s.id;
       el.setAttribute('aria-checked', String(on));
       el.querySelector('.track__pick').hidden = !on;
     });
     $('submit').disabled = false;
+    $('submit').textContent = 'Stem på ' + s.title;
     $('msg').hidden = true;
-    renderText();
 
     if (playing === s.id && !audio.paused) { audio.pause(); return; }
     if (playing !== s.id) {
@@ -110,7 +229,7 @@
       playing = s.id;
       audio.src = s.file;
     }
-    audio.play().catch(function () { setTime(s.id, t('vote.err.unavailable', 'Snippet unavailable')); });
+    audio.play().catch(function () { setTime(s.id, 'Kan ikke afspilles'); });
   }
 
   function setTime(id, text) {
@@ -162,20 +281,21 @@
   audio.addEventListener('error', function () {
     if (!playing) return;
     stopRow(playing);
-    setTime(playing, t('vote.err.unavailable', 'Snippet unavailable'));
+    setTime(playing, 'Kan ikke afspilles');
   });
 
-  // ---------- vote ----------
+  // ---------- open: vote ----------
 
-  var ERRORS = {
-    bad_handle: "That doesn't look like an Instagram username.",
-    bad_song: 'Pick one of the tracks.',
-    closed: 'The giveaway is closed.',
-    too_many: 'Too many votes from this network.'
+  var VOTE_ERRORS = {
+    bad_handle: 'Det ligner ikke et Instagram-brugernavn.',
+    bad_song: 'Vælg et af numrene.',
+    closed: 'Giveawayen er lukket.',
+    locked: 'Giveawayen er ikke åben endnu.',
+    too_many: 'For mange stemmer fra dette netværk.'
   };
 
-  function showMsg(key, fallback) {
-    $('msg').textContent = t(key, fallback);
+  function showMsg(text) {
+    $('msg').textContent = text;
     $('msg').hidden = false;
   }
 
@@ -183,7 +303,7 @@
     var handle = normalizeHandle(input.value);
     if (!handle) {
       handleError(!!input.value.trim());
-      if (!input.value.trim()) showMsg('vote.err.handle', 'Add your Instagram username above.');
+      if (!input.value.trim()) showMsg('Skriv dit Instagram-brugernavn ovenfor.');
       input.focus();
       input.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -191,77 +311,49 @@
     if (!selected) return;
 
     var btn = $('submit');
+    var label = btn.textContent;
     btn.disabled = true;
-    btn.textContent = t('vote.sending', 'Sending…');
+    btn.textContent = 'Sender…';
     $('msg').hidden = true;
 
     rpc('luciano_vote', { p_campaign: CAMPAIGN.id, p_handle: handle, p_song: selected })
       .then(function (result) {
         if (result !== 'ok' && result !== 'already') {
-          showMsg('vote.err.' + result, ERRORS[result] || 'Something went wrong. Try again.');
-          if (result === 'closed') setTimeout(showClosed, 1500);
+          showMsg(VOTE_ERRORS[result] || 'Noget gik galt. Prøv igen.');
+          if (result === 'closed' || result === 'locked') poll();
           return;
         }
-        var all = readStore();
-        all[CAMPAIGN.id] = { handle: handle, song: result === 'ok' ? selected : null, already: result === 'already' };
-        writeStore(all);
+        var entries = load(STORE);
+        entries[CAMPAIGN.id] = { handle: handle, song: result === 'ok' ? selected : null, already: result === 'already' };
+        save(STORE, entries);
         audio.pause();
-        showDone(all[CAMPAIGN.id]);
-      })
-      .catch(function (e) {
-        if (e.message === 'offline') showMsg('vote.err.net', 'No connection. Try again.');
-        else { $('msg').textContent = e.message; $('msg').hidden = false; }
+        showDone(entries[CAMPAIGN.id]);
+      }, function (e) {
+        showMsg(e.message === 'offline' ? 'Ingen forbindelse. Prøv igen.' : e.message);
       })
       .then(function () {
         btn.disabled = !selected;
-        renderText();
+        btn.textContent = label;
       });
   });
 
-  // ---------- done / closed ----------
+  // ---------- done ----------
 
-  function renderDone() {
+  function showDone(entry) {
     var s = song(entry.song);
     $('done-handle').textContent = '@' + entry.handle;
     $('done-song').textContent = s ? s.title : '';
     $('done-song-row').hidden = !s;
     $('done-already').hidden = !entry.already;
-    $('done-already').textContent = t('vote.already', "@{handle} has already voted, so you're already in. One vote per person.", { handle: entry.handle });
-    $('done-announce').textContent = t('vote.announce', 'The winner is announced on Instagram when the giveaway ends.');
+    $('done-already').textContent = '@' + entry.handle + ' har allerede stemt, så du er allerede med. Én stemme per person.';
+    clearTimeout(timer);
+    show('done');
   }
-
-  function showDone(e) {
-    entry = e;
-    renderDone();
-    $('enter').hidden = true;
-    $('closed').hidden = true;
-    $('done').hidden = false;
-    window.scrollTo(0, 0);
-  }
-
-  function showClosed() {
-    $('enter').hidden = true;
-    $('closed').hidden = false;
-    window.scrollTo(0, 0);
-  }
-
-  $('share').addEventListener('click', function () {
-    var url = location.href.split('#')[0].split('?')[0];
-    if (navigator.share) {
-      navigator.share({ title: '99 LUCIANO', url: url }).catch(function () {});
-      return;
-    }
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(function () { $('share').textContent = t('vote.copied', 'Link copied'); });
-    }
-  });
 
   // ---------- start ----------
 
-  document.addEventListener('langchange', renderText);
-  renderText();
-
-  var saved = readStore()[CAMPAIGN.id];
-  if (saved) showDone(saved);
-  else if (Date.now() > Date.parse(CAMPAIGN.endsAt)) showClosed();
+  var entry = load(STORE)[CAMPAIGN.id];
+  if (entry) showDone(entry);
+  else if (Date.now() > Date.parse(CAMPAIGN.endsAt)) show('closed');
+  else poll();
 })();

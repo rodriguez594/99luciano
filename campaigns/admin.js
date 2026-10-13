@@ -3,11 +3,12 @@
   var key = '';
   try { key = sessionStorage.getItem('luciano:admin') || ''; } catch (e) {}
 
-  function call(name, args) {
-    var body = { p_key: key, p_campaign: CAMPAIGN.id };
+  function call(name, args, withCampaign) {
+    var body = { p_key: key };
+    if (withCampaign !== false) body.p_campaign = CAMPAIGN.id;
     Object.keys(args || {}).forEach(function (k) { body[k] = args[k]; });
     return rpc(name, body).catch(function (e) {
-      throw new Error(e.message === 'unauthorized' ? 'Wrong password.' : e.message === 'offline' ? 'No connection.' : e.message);
+      throw new Error(e.message === 'unauthorized' ? 'Forkert adgangskode.' : e.message === 'offline' ? 'Ingen forbindelse.' : e.message);
     });
   }
 
@@ -16,23 +17,55 @@
     return id;
   }
 
-  function render(rows) {
+  function download(name, rows) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv' }));
+    a.download = name;
+    a.click();
+  }
+
+  function renderStatus(s) {
+    $('followers').textContent = s.followers;
+    $('goal').textContent = s.goal;
+    $('lock-state').textContent = s.closed ? 'Giveawayen er lukket.' : s.unlocked ? 'Giveawayen er åben.' : 'Låst indtil ' + s.goal + ' følgere.';
+  }
+
+  function renderResults(rows) {
     var total = 0, verified = 0, max = 1;
     rows.forEach(function (r) { total += r.votes; verified += r.verified; max = Math.max(max, r.votes); });
-    $('totals').textContent = total + ' entries · ' + verified + ' following';
+    $('totals').textContent = total + ' stemmer · ' + verified + ' følger';
     $('results').innerHTML = '';
     rows.slice().sort(function (a, b) { return b.votes - a.votes; }).forEach(function (r) {
       var div = document.createElement('div');
       div.className = 'result';
-      div.innerHTML = '<h3></h3><span>' + r.votes + ' votes<br>' + r.verified + ' following</span><i></i>';
+      div.innerHTML = '<h3></h3><span>' + r.votes + ' stemmer<br>' + r.verified + ' følger</span><i></i>';
       div.querySelector('h3').textContent = title(r.song);
       div.querySelector('i').style.transform = 'scaleX(' + r.votes / max + ')';
       $('results').appendChild(div);
     });
   }
 
+  var signups = [];
+  function renderSignups(rows) {
+    signups = rows;
+    $('signup-count').textContent = rows.length + ' vil have besked';
+    $('signups').innerHTML = '';
+    rows.forEach(function (r) {
+      var div = document.createElement('div');
+      div.className = 'signup';
+      div.innerHTML = '<span></span><span></span>';
+      div.firstChild.textContent = r.kind === 'sms' ? '+' + r.contact : r.contact;
+      div.lastChild.textContent = r.notified_at ? 'Sendt' : r.kind === 'sms' ? 'SMS' : 'Email';
+      $('signups').appendChild(div);
+    });
+  }
+
   function load() {
-    return call('luciano_results').then(render);
+    return Promise.all([
+      call('luciano_results').then(renderResults),
+      call('luciano_signups').then(renderSignups),
+      giveawayStatus().then(renderStatus, function () {})
+    ]);
   }
 
   function unlock() {
@@ -69,16 +102,28 @@
   $('key').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('unlock').click(); });
   $('refresh').addEventListener('click', load);
 
+  $('set-followers').addEventListener('click', function () {
+    var n = parseInt($('manual').value, 10);
+    if (!(n >= 0)) return;
+    call('luciano_admin_followers', { p_followers: n }, false).then(load, function (e) { $('lock-state').textContent = e.message; });
+  });
+  $('open-now').addEventListener('click', function () {
+    if (!confirm('Åbn giveawayen nu, uanset antal følgere?')) return;
+    call('luciano_admin_unlock').then(load, function (e) { $('lock-state').textContent = e.message; });
+  });
+
   $('export').addEventListener('click', function () {
     call('luciano_entries').then(function (rows) {
-      var csv = ['handle,song,following,created_at'].concat(rows.map(function (r) {
-        return [r.handle, r.song, r.verified ? 'yes' : 'no', r.created_at].join(',');
-      })).join('\n');
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-      a.download = CAMPAIGN.id + '.csv';
-      a.click();
+      download(CAMPAIGN.id + '-stemmer.csv', ['brugernavn,nummer,foelger,tidspunkt'].concat(rows.map(function (r) {
+        return [r.handle, title(r.song), r.verified ? 'ja' : 'nej', r.created_at].join(',');
+      })));
     });
+  });
+
+  $('export-signups').addEventListener('click', function () {
+    download(CAMPAIGN.id + '-besked.csv', ['type,kontakt,tilmeldt,sendt'].concat(signups.map(function (r) {
+      return [r.kind, r.kind === 'sms' ? '+' + r.contact : r.contact, r.created_at, r.notified_at || ''].join(',');
+    })));
   });
 
   $('file').addEventListener('change', function (e) {
@@ -86,16 +131,16 @@
     if (!file) return;
     file.text().then(function (text) {
       var list = extract(text);
-      $('followers').value = list.join('\n');
-      $('verify-note').textContent = list.length + ' usernames loaded from ' + file.name + '.';
+      $('followers-list').value = list.join('\n');
+      $('verify-note').textContent = list.length + ' brugernavne hentet fra ' + file.name + '.';
     });
   });
 
   $('verify').addEventListener('click', function () {
-    var list = extract($('followers').value);
-    if (!list.length) { $('verify-note').textContent = 'The list is empty.'; return; }
+    var list = extract($('followers-list').value);
+    if (!list.length) { $('verify-note').textContent = 'Listen er tom.'; return; }
     call('luciano_verify', { p_followers: list }).then(function (n) {
-      $('verify-note').textContent = 'Checked against ' + list.length + ' followers. ' + n + ' entries follow.';
+      $('verify-note').textContent = 'Tjekket mod ' + list.length + ' følgere. ' + n + ' stemmer følger.';
       return load();
     }, function (e) { $('verify-note').textContent = e.message; });
   });
@@ -104,12 +149,12 @@
     call('luciano_draw').then(function (rows) {
       if (!rows.length) {
         $('winner').textContent = '';
-        $('winner-note').textContent = 'No entries that follow yet. Check followers first.';
+        $('winner-note').textContent = 'Ingen stemmer fra følgere endnu. Tjek følgere først.';
         return;
       }
       var w = rows[0];
       $('winner').textContent = '@' + w.handle;
-      $('winner-note').textContent = 'Out of ' + w.pool + ' entries · voted for ' + title(w.song) + ' · ' + new Date(w.created_at).toLocaleString('da-DK');
+      $('winner-note').textContent = 'Ud af ' + w.pool + ' stemmer · stemte på ' + title(w.song) + ' · ' + new Date(w.created_at).toLocaleString('da-DK');
     }, function (e) { $('winner-note').textContent = e.message; });
   });
 
