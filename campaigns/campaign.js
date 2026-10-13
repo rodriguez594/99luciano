@@ -192,61 +192,88 @@
   input.addEventListener('blur', function () { handleError(!!input.value.trim() && !normalizeHandle(input.value)); });
   input.addEventListener('keydown', function (e) { if (e.key === 'Enter') input.blur(); });
 
-  // ---------- open: snippets ----------
+  // ---------- open: snippets (record sleeves) ----------
+
+  // Album art, or a plain 99 sleeve until the cover is added.
+  function art(el, s) {
+    el.classList.toggle('is-blank', !s.cover);
+    el.style.backgroundImage = s.cover ? 'url("' + s.cover + '")' : '';
+    if (el.classList.contains('sleeve') || el.classList.contains('cover__art')) el.textContent = s.cover ? '' : s.title;
+  }
 
   CAMPAIGN.songs.forEach(function (s) {
     var li = document.createElement('li');
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'track';
+    btn.className = 'cover';
     btn.dataset.id = s.id;
     btn.setAttribute('role', 'radio');
     btn.setAttribute('aria-checked', 'false');
-    btn.innerHTML = '<span class="track__btn" aria-hidden="true"></span><span class="track__name"></span>' +
-      '<span class="track__time">' + fmt(LEN) + '</span><span class="track__pick" hidden>Din stemme</span><span class="track__bar"></span>';
-    btn.querySelector('.track__name').textContent = s.title;
+    btn.innerHTML = '<span class="cover__art art"></span><span class="cover__pick">Din stemme</span>' +
+      '<span class="cover__title"></span><span class="cover__artist"></span>';
+    art(btn.querySelector('.cover__art'), s);
+    btn.querySelector('.cover__title').textContent = s.title;
+    btn.querySelector('.cover__artist').textContent = s.artist || CAMPAIGN.artist;
     btn.addEventListener('click', function () { tap(s); });
     li.appendChild(btn);
-    $('tracks').appendChild(li);
+    $('covers').appendChild(li);
   });
 
-  function row(id) { return document.querySelector('.track[data-id="' + id + '"]'); }
+  var deck = $('deck');
+  var swapTimer = 0;
+
+  // Puts a song on the deck: the old record slides back in, the new one slides out.
+  function putOnDeck(s) {
+    var wasOut = deck.classList.contains('is-out');
+    $('player').hidden = false;
+    deck.classList.remove('is-out', 'is-spinning');
+    clearTimeout(swapTimer);
+    swapTimer = setTimeout(function () {
+      art($('sleeve'), s);
+      art($('record-label'), s);
+      $('player-artist').textContent = s.artist || CAMPAIGN.artist;
+      $('player-title').textContent = s.title;
+      deck.offsetWidth; // restart the slide
+      deck.classList.add('is-out');
+      if (!audio.paused) deck.classList.add('is-spinning');
+    }, wasOut ? 380 : 0);
+    var box = $('player').getBoundingClientRect();
+    if (box.top < 70 || box.top > window.innerHeight * 0.5) {
+      $('player').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
 
   function tap(s) {
     selected = s.id;
-    all('.track').forEach(function (el) {
-      var on = el.dataset.id === s.id;
-      el.setAttribute('aria-checked', String(on));
-      el.querySelector('.track__pick').hidden = !on;
-    });
+    all('.cover').forEach(function (el) { el.setAttribute('aria-checked', String(el.dataset.id === s.id)); });
     $('submit').disabled = false;
     $('submit').textContent = 'Stem på ' + s.title;
     $('msg').hidden = true;
 
-    if (playing === s.id && !audio.paused) { audio.pause(); return; }
-    if (playing !== s.id) {
-      stopRow(playing);
-      playing = s.id;
-      audio.src = s.file;
-    }
-    audio.play().catch(function () { setTime(s.id, 'Kan ikke afspilles'); });
+    if (playing === s.id) { toggle(); return; }
+    playing = s.id;
+    putOnDeck(s);
+    resetTime();
+    audio.src = s.file;
+    // play() has to start inside the tap, or phones block it
+    audio.play().catch(function () { $('player-time').textContent = 'Kan ikke afspilles'; });
   }
 
-  function setTime(id, text) {
-    var el = row(id);
-    if (el) el.querySelector('.track__time').textContent = text;
+  function toggle() {
+    if (!playing) return;
+    if (audio.paused) audio.play().catch(function () {});
+    else audio.pause();
   }
-
-  function stopRow(id) {
-    var el = row(id);
-    if (!el) return;
-    el.classList.remove('is-playing');
-    el.querySelector('.track__bar').style.transform = 'scaleX(0)';
-    setTime(id, fmt(LEN));
-  }
+  deck.addEventListener('click', toggle);
+  $('player-toggle').addEventListener('click', toggle);
 
   function length() {
     return isFinite(audio.duration) && audio.duration > 0 ? Math.min(audio.duration, LEN) : LEN;
+  }
+
+  function resetTime() {
+    $('player-bar').style.transform = 'scaleX(0)';
+    $('player-time').textContent = fmt(0) + ' / ' + fmt(LEN);
   }
 
   var raf = 0;
@@ -255,33 +282,35 @@
     if (audio.currentTime >= len) {
       audio.pause();
       audio.currentTime = 0;
-      stopRow(playing);
+      resetTime();
       return;
     }
-    var el = row(playing);
-    if (el) {
-      el.querySelector('.track__bar').style.transform = 'scaleX(' + audio.currentTime / len + ')';
-      setTime(playing, fmt(audio.currentTime) + ' / ' + fmt(len));
-    }
+    $('player-bar').style.transform = 'scaleX(' + audio.currentTime / len + ')';
+    $('player-time').textContent = fmt(audio.currentTime) + ' / ' + fmt(len);
     if (!audio.paused) raf = requestAnimationFrame(tick);
   }
 
+  function setPlaying(on) {
+    if (on && deck.classList.contains('is-out')) deck.classList.add('is-spinning');
+    deck.classList.toggle('is-paused', !on);
+    $('player-toggle').textContent = on ? 'Pause' : 'Afspil';
+    all('.cover').forEach(function (el) { el.classList.toggle('is-playing', on && el.dataset.id === playing); });
+  }
+
   audio.addEventListener('playing', function () {
-    var el = row(playing);
-    if (el) el.classList.add('is-playing');
+    setPlaying(true);
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(tick);
   });
   audio.addEventListener('pause', function () {
     cancelAnimationFrame(raf);
-    var el = row(playing);
-    if (el) el.classList.remove('is-playing');
+    setPlaying(false);
   });
-  audio.addEventListener('ended', function () { stopRow(playing); });
+  audio.addEventListener('ended', function () { setPlaying(false); resetTime(); });
   audio.addEventListener('error', function () {
     if (!playing) return;
-    stopRow(playing);
-    setTime(playing, 'Kan ikke afspilles');
+    setPlaying(false);
+    $('player-time').textContent = 'Kan ikke afspilles';
   });
 
   // ---------- open: vote ----------

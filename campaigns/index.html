@@ -103,8 +103,26 @@
         <li class="step">
           <div class="step__head"><span class="step__num">03</span><h2 class="step__title">Lyt og stem</h2></div>
           <div class="step__body">
-            <p class="step__note" style="margin:0 0 18px">Tryk på et nummer for at høre klippet. Du har én stemme.</p>
-            <ul class="tracks" id="tracks" role="radiogroup" aria-label="Numre"></ul>
+            <p class="step__note" style="margin:0 0 22px">Tryk på et cover for at høre klippet. Du har én stemme.</p>
+
+            <!-- Now playing: the record slides out of the sleeve and spins -->
+            <div class="player" id="player" hidden>
+              <button type="button" class="deck" id="deck" aria-label="Afspil / pause">
+                <span class="record"><span class="record__disc"><span class="record__label art" id="record-label"></span></span></span>
+                <span class="sleeve art" id="sleeve"></span>
+              </button>
+              <div class="player__info">
+                <p class="player__artist" id="player-artist"></p>
+                <p class="player__title" id="player-title"></p>
+                <div class="player__bar"><i id="player-bar"></i></div>
+                <div class="player__row">
+                  <span id="player-time">0:00 / 0:30</span>
+                  <button type="button" class="player__toggle" id="player-toggle">Pause</button>
+                </div>
+              </div>
+            </div>
+
+            <ul class="covers" id="covers" role="radiogroup" aria-label="Numre"></ul>
           </div>
         </li>
       </ol>

@@ -6,6 +6,7 @@ Artist site for 99 LUCIANO, part of 99 (with 99MGMT, 99ENT and 99WRLDWIDE). In D
 - `campaigns/`: the giveaway at 99luciano.dk/campaigns
 - `campaigns/config.js`: **edit this.** Songs, prize, end date, follower goal and the Supabase keys
 - `campaigns/snippets/`: the MP3 snippets
+- `campaigns/covers/`: square album covers. Each one is used for the sleeve in the grid, the big sleeve when it plays, and the label in the middle of the record
 - `campaigns/admin.html`: follower count, votes, notification list, follower check and winner draw
 - `supabase/schema.sql`: tables and functions the site calls
 - `supabase/functions/luciano-status/`: fetches the Instagram follower count and sends the "it's open" messages
@@ -70,7 +71,7 @@ One-time setup: repo Settings → Pages → Source: **GitHub Actions**.
 
 ## Running a giveaway
 
-1. Put the snippets in `campaigns/snippets/` and list them in `campaigns/config.js` (id, title, file).
+1. Put the snippets in `campaigns/snippets/` and the covers in `campaigns/covers/`, and list them in `campaigns/config.js` (id, title, file, cover, and artist if it differs).
 2. Make sure the id, song ids, end date and goal match the `luciano_campaigns` row in Supabase. The server checks against that row.
 3. Push to `main`.
 

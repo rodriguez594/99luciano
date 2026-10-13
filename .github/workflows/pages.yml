@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir -p _site
           cp -r index.html 404.html styles.css main.js assets campaigns .nojekyll _site/
-          rm -f _site/campaigns/snippets/README.md
+          rm -f _site/campaigns/snippets/README.md _site/campaigns/covers/README.md
           # Bust browser caches so a new deploy never mixes old CSS/JS with new HTML
           find _site -name '*.html' -exec sed -i "s/?v=dev/?v=${GITHUB_SHA::7}/g" {} +
       - uses: actions/upload-pages-artifact@v3

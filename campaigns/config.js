@@ -7,10 +7,12 @@ var CAMPAIGN = {
   goal: 150,                 // followers needed before voting opens
   endsAt: '2026-11-15T23:59:00+01:00',
   snippetSeconds: 30,
+  artist: '99 LUCIANO',      // shown under each song; a song can set its own (e.g. with a feature)
+  // cover: square album art in covers/ (e.g. 1000×1000 JPG). Until it's added, the sleeve is plain black with the 99 mark.
   songs: [
-    { id: 'song-1', title: 'Sang et', file: 'snippets/song-1.mp3' },
-    { id: 'song-2', title: 'Sang to', file: 'snippets/song-2.mp3' },
-    { id: 'song-3', title: 'Sang tre', file: 'snippets/song-3.mp3' }
+    { id: 'song-1', title: 'Sang et', file: 'snippets/song-1.mp3', cover: '' },
+    { id: 'song-2', title: 'Sang to', file: 'snippets/song-2.mp3', cover: '' },
+    { id: 'song-3', title: 'Sang tre', file: 'snippets/song-3.mp3', cover: '' }
   ]
 };
 
