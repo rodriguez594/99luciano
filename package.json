@@ -1,0 +1,13 @@
+{
+  "name": "99luciano",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev",
+    "db:init:local": "wrangler d1 execute 99luciano --local --file=schema.sql",
+    "db:init": "wrangler d1 execute 99luciano --remote --file=schema.sql",
+    "deploy": "wrangler pages deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

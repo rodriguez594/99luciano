@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Giveaway admin — 99 Luciano</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <style>
+    section { padding: 24px 0; border-bottom: 1px solid var(--line); }
+    h2 { font-size: 14px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 14px; }
+    textarea { width: 100%; min-height: 120px; padding: 12px; border: 2px solid var(--ink); border-radius: 10px; font: 14px/1.4 ui-monospace, monospace; }
+    .row { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+    .row:first-child { border-top: 0; }
+    .bar { height: 6px; background: var(--ink); border-radius: 3px; margin-top: 6px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    #winner { font-size: 32px; font-weight: 900; margin: 16px 0 0; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main class="wrap" style="padding-bottom:40px">
+    <div class="topbar"><img class="logo" src="/assets/logo.svg" alt="99"><span class="small muted">Admin</span></div>
+
+    <section id="login">
+      <h2>Admin token</h2>
+      <label class="field"><span class="field__box"><input id="token" type="password" placeholder="ADMIN_TOKEN"></span></label>
+      <button class="btn" id="login-btn" style="margin-top:12px">Unlock</button>
+      <p class="field__hint is-error" id="login-err"></p>
+    </section>
+
+    <div id="panel" hidden>
+      <section>
+        <h2>Results</h2>
+        <p class="small muted" id="totals"></p>
+        <div id="results"></div>
+        <div class="grid2" style="margin-top:14px">
+          <button class="btn btn--ghost" id="refresh">Refresh</button>
+          <button class="btn btn--ghost" id="export">Export CSV</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Verify followers</h2>
+        <p class="small muted">Upload <code>followers_1.json</code> from Instagram's “Download your information” (Followers and following),
+          or paste usernames one per line. Entries not in the list are marked unverified.</p>
+        <input type="file" id="file" accept=".json,.txt,.csv,.html" style="margin:8px 0 12px">
+        <textarea id="followers" placeholder="username1&#10;username2"></textarea>
+        <button class="btn" id="verify" style="margin-top:12px">Verify entries</button>
+        <p class="field__hint" id="verify-msg"></p>
+      </section>
+
+      <section>
+        <h2>Draw winner</h2>
+        <p class="small muted">Picks one random verified entry.</p>
+        <button class="btn" id="draw">Draw winner</button>
+        <p id="winner"></p>
+        <p class="small muted" id="winner-meta"></p>
+      </section>
+    </div>
+  </main>
+  <script src="/campaigns/admin.js" type="module"></script>
+</body>
+</html>
