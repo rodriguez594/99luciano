@@ -53,6 +53,7 @@
       <div class="draw reveal" data-draw hidden>
         <p class="draw__when"></p>
         <p class="draw__rule">Du skal være til stede i livestreamen for at modtage præmien, ellers bliver en ny vinder trukket. Du har 5 minutter, fra du har vundet.</p>
+        <p class="draw__rule">Del afstemningen på din Instagram story og tag @99luciano0, så tæller dit lod dobbelt.</p>
       </div>
     </div>
 
@@ -163,7 +164,26 @@
       <div class="draw" data-draw hidden>
         <p class="draw__when"></p>
         <p class="draw__rule">Du skal være til stede i livestreamen for at modtage præmien, ellers bliver en ny vinder trukket. Du har 5 minutter, fra du har vundet.</p>
+        <p class="draw__rule">Del afstemningen på din Instagram story og tag @99luciano0, så tæller dit lod dobbelt.</p>
       </div>
+      <!-- Double chance: share on your Instagram story -->
+      <section class="story" id="story">
+        <p class="label">Dobbelt chance</p>
+        <h2 class="story__title">Del på din story, så tæller dit lod dobbelt.</h2>
+        <ol class="story__steps">
+          <li>Del billedet herunder på din Instagram story.</li>
+          <li>Tag <span class="ig-handle"></span> og sæt et link til 99luciano.dk/vote på.</li>
+          <li>Tryk "Jeg har delt". Når jeg har set din story, tæller dit lod dobbelt.</li>
+        </ol>
+        <img class="story__preview" id="story-img" alt="Billede til din story" width="1080" height="1920" hidden>
+        <div class="story__actions" id="story-actions">
+          <button type="button" class="btn btn--solid" id="story-share">Del på story</button>
+          <a class="btn" id="story-save" download="99luciano-stem.png">Gem billede</a>
+          <button type="button" class="btn" id="story-claim">Jeg har delt</button>
+        </div>
+        <p class="follow-link" id="story-done" hidden><span>Story delt</span><span class="follow-link__state">Tjekkes</span></p>
+        <p class="step__note" id="story-note" aria-live="polite"></p>
+      </section>
       <p class="done__note">Bliv ved med at følge. Hvis du stopper før lodtrækningen, er du ude.</p>
       <div class="winner-notify" data-winner-notify></div>
       <button type="button" class="btn btn--solid share-ig" style="margin-top:28px"><span>Del <span class="ig-handle"></span></span></button>
@@ -178,6 +198,7 @@
         <div class="draw" data-draw hidden>
           <p class="draw__when"></p>
           <p class="draw__rule">Du skal være til stede i livestreamen for at modtage præmien, ellers bliver en ny vinder trukket. Du har 5 minutter, fra du har vundet.</p>
+        <p class="draw__rule">Del afstemningen på din Instagram story og tag @99luciano0, så tæller dit lod dobbelt.</p>
         </div>
         <div class="winner-notify" data-winner-notify></div>
       </div>

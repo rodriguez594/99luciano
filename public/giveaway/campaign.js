@@ -97,7 +97,9 @@
   // ---------- text ----------
 
   // "Gavekort på 150 kr. til hvad du vil" → label GAVEKORT, amount 150 KR., note TIL HVAD DU VIL
+  var prizeText = '';
   function renderPrize(prize) {
+    prizeText = prize;
     var m = prize.match(/^(.*?)(\d[\d.,]*)\s*(kr\.?|kroner|dkk)\s*(.*)$/i);
     if (m) {
       $('prize-label').textContent = /gavekort/i.test(m[1]) ? 'Gavekort' : (m[1].replace(/\s*(på|til|af)\s*$/i, '').trim() || 'Præmie');
@@ -606,9 +608,110 @@
     $('done-song-row').hidden = !entry.title;
     $('done-already').hidden = !entry.already;
     $('done-already').textContent = '@' + entry.handle + ' har allerede stemt, så du er allerede med. Én stemme per person.';
+    renderStory(entry);
     clearTimeout(timer);
     show('done');
   }
+
+  // ---------- double chance: share on your Instagram story ----------
+
+  var storyFile = null;
+
+  // A 1080×1920 picture for the story: the 99 mark, "Jeg har stemt" and where to vote
+  function makeStory() {
+    var mark = new Image();
+    mark.src = '/assets/mark.png';
+    var fonts = document.fonts && document.fonts.load ? document.fonts.load('800 80px Montserrat') : Promise.resolve();
+    return Promise.all([fonts.catch(function () {}), new Promise(function (ok) { mark.onload = ok; mark.onerror = ok; })]).then(function () {
+      var c = document.createElement('canvas');
+      c.width = 1080;
+      c.height = 1920;
+      var g = c.getContext('2d');
+      g.fillStyle = '#000';
+      g.fillRect(0, 0, 1080, 1920);
+      if (mark.naturalWidth) {
+        var w = 420, h = w * mark.naturalHeight / mark.naturalWidth;
+        g.drawImage(mark, (1080 - w) / 2, 330, w, h);
+      }
+      g.fillStyle = '#fff';
+      g.textAlign = 'center';
+      var font = function (size) { return '800 ' + size + 'px Montserrat, "Helvetica Neue", Arial, sans-serif'; };
+      g.font = font(54);
+      if (g.letterSpacing !== undefined) g.letterSpacing = '14px';
+      g.fillText('LUCIANO', 540, 860);
+      if (g.letterSpacing !== undefined) g.letterSpacing = '0px';
+      g.font = font(118);
+      g.fillText('JEG HAR', 540, 1080);
+      g.fillText('STEMT.', 540, 1210);
+      g.font = font(44);
+      g.fillStyle = '#bdbdbd';
+      g.fillText('STEM PÅ MIN NÆSTE SINGLE', 540, 1320);
+      var m = String(prizeText || '').match(/(\d[\d.,]*)\s*(kr\.?|kroner|dkk)/i);
+      g.fillText(m ? 'OG VIND ' + (/gavekort/i.test(prizeText) ? 'ET GAVEKORT' : 'EN PRÆMIE') + ' PÅ ' + m[1] + ' KR.' : 'OG VIND EN PRÆMIE', 540, 1384);
+      g.fillStyle = '#fff';
+      g.fillRect(190, 1500, 700, 120);
+      g.fillStyle = '#000';
+      g.font = font(50);
+      g.fillText('99LUCIANO.DK/VOTE', 540, 1578);
+      g.fillStyle = '#fff';
+      g.font = font(40);
+      g.fillText('@' + CAMPAIGN.instagram.toUpperCase(), 540, 1720);
+      return new Promise(function (ok) { c.toBlob(ok, 'image/png'); });
+    }).then(function (blob) {
+      if (!blob) throw new Error('canvas');
+      storyFile = new File([blob], '99luciano-stem.png', { type: 'image/png' });
+      var url = URL.createObjectURL(blob);
+      $('story-img').src = url;
+      $('story-img').hidden = false;
+      $('story-save').href = url;
+      return storyFile;
+    });
+  }
+
+  function renderStory(entry) {
+    var claimed = entry && entry.story;
+    $('story-done').hidden = !claimed;
+    $('story-claim').hidden = !!claimed;
+    $('story-note').textContent = claimed
+      ? 'Tak! Når jeg har set din story, tæller dit lod dobbelt. Lad den ligge, til den udløber.'
+      : '';
+    if (!storyFile) makeStory().catch(function () { $('story-img').hidden = true; });
+  }
+
+  $('story-share').addEventListener('click', function () {
+    var note = $('story-note');
+    (storyFile ? Promise.resolve(storyFile) : makeStory()).then(function (file) {
+      var data = { files: [file], text: 'Stem på @' + CAMPAIGN.instagram + "'s næste single: 99luciano.dk/vote" };
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share(data).then(function () {
+          note.textContent = 'Vælg Instagram → Story. Husk at tagge @' + CAMPAIGN.instagram + ' og sætte linket på. Tryk så "Jeg har delt".';
+        }, function () {});
+      }
+      // No share sheet with files (most computers): save the picture instead
+      $('story-save').click();
+      note.textContent = 'Billedet er gemt. Læg det på din Instagram story, tag @' + CAMPAIGN.instagram + ' og tryk så "Jeg har delt".';
+    }, function () {
+      note.textContent = 'Kunne ikke lave billedet. Tag et skærmbillede af siden i stedet.';
+    });
+  });
+
+  $('story-claim').addEventListener('click', function () {
+    var entry = savedEntry();
+    if (!entry) return;
+    var btn = $('story-claim');
+    btn.disabled = true;
+    API.story(entry.handle).then(function (result) {
+      if (result === 'ok') {
+        entry.story = true;
+        saveEntry(entry);
+        renderStory(entry);
+        return;
+      }
+      $('story-note').textContent = result === 'closed' ? 'Afstemningen er slut.' : 'Vi kunne ikke finde din stemme. Prøv igen.';
+    }, function (e) {
+      $('story-note').textContent = e.message === 'offline' ? 'Ingen forbindelse. Prøv igen.' : e.message;
+    }).then(function () { btn.disabled = false; });
+  });
 
   // ---------- start ----------
 

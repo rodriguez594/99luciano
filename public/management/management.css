@@ -437,3 +437,8 @@ a.m-card:hover { border-color: var(--text); }
   .m-version { grid-template-columns: 64px 1fr auto; }
   .m-new { flex-direction: column; align-items: stretch; }
 }
+
+/* Stories */
+.m-story { border-left-color: var(--soft); }
+.m-story.is-ok { border-left-color: var(--text); }
+#story .m-new { margin: 18px 0 6px; }

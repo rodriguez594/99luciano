@@ -187,6 +187,7 @@ export const onRequest = handle(async (context) => {
           title: s.title,
           votes: mine.length,
           verified: mine.filter((v) => v.verified).length,
+          stories: mine.filter((v) => v.story).length,
           people: new Set(mine.map((v) => groups.get(v.id))).size,
         };
       }));
@@ -203,6 +204,28 @@ export const onRequest = handle(async (context) => {
           verified: !!v.verified, cleared: !!v.cleared, ...why.get(v.id), created_at: v.created_at,
         }))
         .sort((a, b) => a.grp - b.grp || a.created_at.localeCompare(b.created_at)));
+    }
+
+    // Votes that shared on their story (claimed by the voter, or confirmed by you)
+    case 'GET stories': {
+      const c = await getCampaign(DB, q('campaign'));
+      const { votes, titles } = await votesWithGroups(DB, c.id);
+      return json(votes
+        .filter((v) => v.story_claimed || v.story)
+        .map((v) => ({ vote_id: v.id, handle: v.handle, title: titles.get(v.song) || '', claimed: !!v.story_claimed, story: !!v.story, verified: !!v.verified, created_at: v.created_at }))
+        .sort((a, b) => a.story - b.story || a.created_at.localeCompare(b.created_at)));
+    }
+
+    // Confirm (or undo) a story, by vote id or by username
+    case 'POST story': {
+      const b = await body(request);
+      const c = await getCampaign(DB, b.campaign);
+      const h = b.handle != null ? normalizeHandle(b.handle) : null;
+      const res = h
+        ? await DB.prepare('UPDATE votes SET story = ? WHERE campaign = ? AND handle = ?').bind(b.story ? 1 : 0, c.id, h).run()
+        : await DB.prepare('UPDATE votes SET story = ? WHERE campaign = ? AND id = ?').bind(b.story ? 1 : 0, c.id, Number(b.vote)).run();
+      if (!res.meta.changes) throw new HttpError(404, h ? '@' + h + ' har ikke stemt.' : 'Stemmen findes ikke.');
+      return json({ ok: true });
     }
 
     case 'POST clear': {
@@ -222,20 +245,23 @@ export const onRequest = handle(async (context) => {
     }
 
     // Draws among people, not votes: each flagged group is one entry. Only followers count.
+    // A confirmed story counts double: the group gets 2 lots, and that vote is twice as likely within it.
     case 'POST draw': {
       const b = await body(request);
       const c = await getCampaign(DB, b.campaign);
       const { votes, groups, titles } = await votesWithGroups(DB, c.id);
-      const eligible = [...new Set(votes.filter((v) => v.verified).map((v) => groups.get(v.id)))];
-      if (!eligible.length) return json({ winner: null });
-      const grp = eligible[randomInt(eligible.length)];
+      const verified = votes.filter((v) => v.verified);
+      const weight = new Map();
+      for (const v of verified) weight.set(groups.get(v.id), Math.max(weight.get(groups.get(v.id)) || 0, v.story ? 2 : 1));
+      if (!weight.size) return json({ winner: null });
+      const grp = pickWeighted([...weight.entries()]);
       const inGroup = votes.filter((v) => groups.get(v.id) === grp);
-      const candidates = inGroup.filter((v) => v.verified);
-      const w = candidates[randomInt(candidates.length)];
+      const w = pickWeighted(inGroup.filter((v) => v.verified).map((v) => [v, v.story ? 2 : 1]));
+      const lots = [...weight.values()].reduce((a, n) => a + n, 0);
       return json({
         winner: {
-          handle: w.handle, title: titles.get(w.song) || '', created_at: w.created_at, pool: eligible.length,
-          group_handles: inGroup.map((v) => v.handle),
+          handle: w.handle, title: titles.get(w.song) || '', created_at: w.created_at, story: !!w.story,
+          pool: weight.size, lots, group_handles: inGroup.map((v) => v.handle),
         },
       });
     }
@@ -246,7 +272,7 @@ export const onRequest = handle(async (context) => {
       const size = new Map();
       for (const g of groups.values()) size.set(g, (size.get(g) || 0) + 1);
       return json(votes.map((v) => ({
-        handle: v.handle, title: titles.get(v.song) || '', verified: !!v.verified,
+        handle: v.handle, title: titles.get(v.song) || '', verified: !!v.verified, story: !!v.story, story_claimed: !!v.story_claimed,
         flagged: size.get(groups.get(v.id)) > 1, grp: groups.get(v.id), created_at: v.created_at,
       })));
     }
@@ -266,6 +292,17 @@ export const onRequest = handle(async (context) => {
   }
   throw new HttpError(404, 'Ukendt adresse.');
 });
+
+// [[item, weight], …] → one item, chosen with chance weight / total
+function pickWeighted(items) {
+  const total = items.reduce((a, [, w]) => a + w, 0);
+  let r = randomInt(total);
+  for (const [item, w] of items) {
+    if (r < w) return item;
+    r -= w;
+  }
+  return items[items.length - 1][0];
+}
 
 function campaignOut(c) {
   return {

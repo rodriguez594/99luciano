@@ -53,6 +53,7 @@
     active = true;
     API.status = fakeStatus;
     API.vote = function () { return later('ok'); };
+    API.story = function () { return later('ok'); };
     API.notify = function (contact) {
       var v = String(contact || '');
       return later(/@.+\./.test(v) || v.replace(/\D/g, '').length >= 8 ? 'ok' : 'bad_contact');

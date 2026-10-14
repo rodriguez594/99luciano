@@ -48,7 +48,7 @@
       </section>
 
       <nav class="m-tabs" aria-label="Sektioner">
-        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#flag">Flag</a><a href="#besked">Besked</a><a href="#vinder">Vinder</a>
+        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#story">Story</a><a href="#flag">Flag</a><a href="#besked">Besked</a><a href="#vinder">Vinder</a>
       </nav>
 
       <!-- Giveaway settings -->
@@ -96,6 +96,20 @@
         </div>
       </section>
 
+      <!-- Instagram stories: double chance -->
+      <section class="m-sec" id="story">
+        <p class="label" id="story-count">Story · dobbelt chance</p>
+        <p class="step__note">Folk, der har delt afstemningen på deres Instagram story, trykker "Jeg har delt" og kommer på listen her.
+          Når du har set deres story (du får en besked, når nogen tagger dig), tryk "Godkend". Så tæller deres lod dobbelt i lodtrækningen.
+          Du kan også godkende et brugernavn, der ikke har trykket.</p>
+        <div class="m-new">
+          <input class="m-in" id="story-handle" type="text" placeholder="@brugernavn" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Brugernavn">
+          <button type="button" class="btn" id="story-add">Godkend</button>
+        </div>
+        <p class="step__note" id="story-note" aria-live="polite"></p>
+        <div id="stories" class="m-list"></div>
+      </section>
+
       <!-- Flagged votes -->
       <section class="m-sec" id="flag">
         <p class="label" id="flag-count">Flaget</p>
@@ -129,7 +143,7 @@
         <p class="step__note" id="verify-note"></p>
 
         <p class="label" style="margin-top:48px">Træk vinder</p>
-        <p class="step__note">Vælger én tilfældig stemme blandt dem, der følger.</p>
+        <p class="step__note">Vælger én tilfældig stemme blandt dem, der følger. En godkendt story tæller dobbelt.</p>
         <button class="btn btn--solid" id="draw">Træk</button>
         <p id="winner"></p>
         <p class="step__note" id="winner-note"></p>

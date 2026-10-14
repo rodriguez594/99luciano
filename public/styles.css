@@ -207,6 +207,18 @@ em, i { font-style: normal; }
 .draw__rule { margin-top: 8px !important; font-size: 0.74rem; line-height: 1.5; color: var(--soft); }
 .done .draw, #done .draw { margin-bottom: 18px; }
 
+/* Double chance: share on your Instagram story */
+.story { margin: 34px 0 28px; padding: 24px; border: 2px solid var(--text); max-width: 520px; }
+.story .label { margin: 0 0 10px; }
+.story__title { margin: 0; font-size: clamp(1.2rem, 5vw, 1.55rem); line-height: 1.15; }
+.story__steps { margin: 16px 0 0; padding-left: 1.3em; font-size: 0.76rem; line-height: 1.55; color: var(--soft); }
+.story__steps li + li { margin-top: 4px; }
+.story__preview { display: block; width: 46%; max-width: 200px; height: auto; margin: 20px 0 0; border: 1px solid var(--line); }
+.story__actions { display: flex; flex-wrap: wrap; gap: 0 10px; }
+.story__actions .btn { margin-top: 16px; }
+.story .follow-link { margin-top: 18px; }
+.story .step__note:empty { display: none; }
+
 /* "Tell me when the winner is drawn" */
 .winner-notify { margin: 40px 0 0; padding-top: 28px; border-top: 1px solid var(--line); max-width: 520px; }
 .winner-notify .label { margin-bottom: 14px; }

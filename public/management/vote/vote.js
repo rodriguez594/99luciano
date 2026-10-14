@@ -13,6 +13,7 @@
   var squareJpeg = Admin.squareJpeg;
 
   function loadAll() {
+    loadStories();
     loadCampaign();
     loadSongs();
     loadStatus();
@@ -489,7 +490,9 @@
     admin('GET', 'results?campaign=' + C).then(function (rows) {
       var total = 0, verified = 0, max = 1;
       rows.forEach(function (r) { total += r.votes; verified += r.verified; max = Math.max(max, r.votes); });
-      $('totals').textContent = total + ' stemmer · ' + verified + ' følger';
+      var stories = 0;
+      rows.forEach(function (r) { stories += r.stories || 0; });
+      $('totals').textContent = total + ' stemmer · ' + verified + ' følger' + (stories ? ' · ' + stories + ' story' : '');
       $('results').innerHTML = '';
       rows.slice().sort(function (a, b) { return b.votes - a.votes; }).forEach(function (r) {
         var dupes = r.votes - r.people;
@@ -503,6 +506,51 @@
       });
     }, function () {});
   }
+
+  // ---------- stories (double chance) ----------
+
+  function loadStories() {
+    admin('GET', 'stories?campaign=' + C).then(function (rows) {
+      var ok = rows.filter(function (r) { return r.story; }).length;
+      var waiting = rows.length - ok;
+      $('story-count').textContent = 'Story · ' + ok + ' godkendt' + (waiting ? ' · ' + waiting + ' venter' : '');
+      var box = $('stories');
+      box.innerHTML = '';
+      if (!rows.length) box.innerHTML = '<p class="step__note">Ingen endnu.</p>';
+      rows.forEach(function (r) {
+        var row = document.createElement('div');
+        row.className = 'm-flag__row m-story' + (r.story ? ' is-ok' : '');
+        row.innerHTML = '<span class="m-flag__who"><b></b><small></small></span><button type="button" class="m-mini"></button>';
+        row.querySelector('b').textContent = '@' + r.handle;
+        row.querySelector('small').textContent = (r.story ? 'Godkendt · tæller dobbelt' : 'Siger de har delt') +
+          (r.verified ? ' · følger' : '') + ' · ' + r.title;
+        var btn = row.querySelector('button');
+        btn.textContent = r.story ? 'Fortryd' : 'Godkend';
+        if (!r.story) btn.classList.add('m-mini--solid');
+        btn.addEventListener('click', function () {
+          btn.disabled = true;
+          setStory({ vote: r.vote_id, story: !r.story });
+        });
+        box.appendChild(row);
+      });
+    }, function () {});
+  }
+
+  function setStory(data) {
+    data.campaign = CAMPAIGN.id;
+    return admin('POST', 'story', data).then(function () {
+      $('story-note').textContent = '';
+      loadStories();
+      loadResults();
+    }, function (e) { $('story-note').textContent = e.message; loadStories(); });
+  }
+
+  $('story-add').addEventListener('click', function () {
+    var h = $('story-handle').value.trim().replace(/^@/, '');
+    if (!h) return;
+    setStory({ handle: h, story: true }).then(function () { $('story-handle').value = ''; });
+  });
+  $('story-handle').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('story-add').click(); });
 
   // Votes that share a device or a network, grouped. Each group is one entry in the draw.
   function loadFlags() {
@@ -594,12 +642,12 @@
     download(CAMPAIGN.id + '-besked-vinder.csv', signupCsv(winnerSignups));
   });
 
-  $('refresh').addEventListener('click', function () { loadResults(); loadFlags(); loadSignups(); loadStatus(); loadSongs(); });
+  $('refresh').addEventListener('click', function () { loadStories(); loadResults(); loadFlags(); loadSignups(); loadStatus(); loadSongs(); });
 
   $('export').addEventListener('click', function () {
     admin('GET', 'entries?campaign=' + C).then(function (rows) {
-      download(CAMPAIGN.id + '-stemmer.csv', ['brugernavn,nummer,foelger,flaget,gruppe,tidspunkt'].concat(rows.map(function (r) {
-        return [r.handle, '"' + (r.title || '').replace(/"/g, '""') + '"', r.verified ? 'ja' : 'nej', r.flagged ? 'ja' : 'nej', r.grp, r.created_at].join(',');
+      download(CAMPAIGN.id + '-stemmer.csv', ['brugernavn,nummer,foelger,story,flaget,gruppe,tidspunkt'].concat(rows.map(function (r) {
+        return [r.handle, '"' + (r.title || '').replace(/"/g, '""') + '"', r.verified ? 'ja' : 'nej', r.story ? 'ja' : r.story_claimed ? 'venter' : 'nej', r.flagged ? 'ja' : 'nej', r.grp, r.created_at].join(',');
       })));
     });
   });
@@ -660,7 +708,8 @@
       }
       var others = (w.group_handles || []).filter(function (h) { return h !== w.handle; });
       $('winner').textContent = '@' + w.handle;
-      $('winner-note').textContent = 'Ud af ' + w.pool + ' lod · stemte på ' + w.title + ' · ' + new Date(w.created_at).toLocaleString('da-DK') +
+      $('winner-note').textContent = 'Ud af ' + w.pool + ' personer (' + (w.lots || w.pool) + ' lod med dobbelt chance)' +
+        (w.story ? ' · delte på story' : '') + ' · stemte på ' + w.title + ' · ' + new Date(w.created_at).toLocaleString('da-DK') +
         (others.length ? ' · Flaget sammen med @' + others.join(', @') + '. Tjek dem under Flag.' : '');
     }, function (e) { $('winner-note').textContent = e.message; });
   });
