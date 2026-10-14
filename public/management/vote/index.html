@@ -47,8 +47,16 @@
         </div>
       </section>
 
+      <!-- Quick overview: tap to jump -->
+      <div class="m-quick">
+        <a href="#stemmer"><b id="q-votes">–</b><span>Stemmer</span></a>
+        <a href="#stemmer"><b id="q-followers">–</b><span>Følger</span></a>
+        <a href="#besked"><b id="q-notif">–</b><span>Vil have besked</span></a>
+        <a href="#reposter"><b id="q-reposts">–</b><span>Reposter</span></a>
+      </div>
+
       <nav class="m-tabs" aria-label="Sektioner">
-        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#besked" id="tab-notif">Notifikationer</a><a href="#reposter">Reposter</a><a href="#flag">Flag</a><a href="#vinder">Vinder</a>
+        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#besked" id="tab-notif">Notifikationer</a><a href="#reposter">Reposter</a><a href="#flag">Flag</a><a href="#vinder">Følgere &amp; vinder</a>
       </nav>
 
       <!-- Giveaway settings -->
@@ -165,9 +173,10 @@
       <!-- Winner -->
       <section class="m-sec" id="vinder">
         <p class="label">Tjek følgere</p>
-        <p class="step__note">Instagram → Indstillinger → Kontocenter → Dine oplysninger og tilladelser → Download dine oplysninger →
+        <p class="step__note"><b>Én ad gangen:</b> under Stemmer → Alle stemmer, tryk på brugernavnet for at åbne deres Instagram, og tryk "Følger", hvis de følger dig. "Mangler tjek" viser dem, du ikke har markeret endnu.</p>
+        <p class="step__note"><b>Alle på én gang:</b> Instagram → Indstillinger → Kontocenter → Dine oplysninger og tilladelser → Download dine oplysninger →
           Følgere og fulgte, format JSON. Upload followers_1.json her, eller indsæt brugernavne, ét per linje.
-          Dem, der ikke er på listen, tæller som ikke-følgere.</p>
+          Dem, der ikke er på listen, tæller som ikke-følgere (det overskriver dem, du har markeret i hånden).</p>
         <input type="file" id="file" accept=".json,.html,.txt,.csv" class="m-file">
         <textarea id="followers-list" placeholder="brugernavn&#10;brugernavn"></textarea>
         <button class="btn btn--solid" id="verify">Tjek stemmer</button>

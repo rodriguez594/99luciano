@@ -518,7 +518,7 @@
 
   // ---------- who voted for what ----------
 
-  var voters = [], voterSong = null, voterLimit = 100;
+  var voters = [], voterSong = null, voterLimit = 100, voterNotFollowing = false;
   function loadVoters() {
     admin('GET', 'entries?campaign=' + C).then(function (rows) {
       voters = rows.slice().reverse(); // newest first
@@ -544,8 +544,18 @@
       chips.appendChild(b);
     });
 
+    var nf = document.createElement('button');
+    nf.type = 'button';
+    nf.className = 'm-chip' + (voterNotFollowing ? ' is-on' : '');
+    nf.textContent = 'Mangler tjek · ' + voters.filter(function (v) { return !v.verified; }).length;
+    nf.addEventListener('click', function () { voterNotFollowing = !voterNotFollowing; renderVoters(); });
+    chips.appendChild(nf);
+
+    $('q-votes').textContent = voters.length;
+    $('q-followers').textContent = voters.filter(function (v) { return v.verified; }).length;
+
     var list = voters.filter(function (v) {
-      return (voterSong === null || v.title === voterSong) && (!q || v.handle.indexOf(q) >= 0);
+      return (voterSong === null || v.title === voterSong) && (!q || v.handle.indexOf(q) >= 0) && (!voterNotFollowing || !v.verified);
     });
     $('voters-count').textContent = 'Alle stemmer · ' + (list.length === voters.length ? voters.length : list.length + ' af ' + voters.length);
     var box = $('voters');
@@ -554,7 +564,20 @@
     list.slice(0, voterLimit).forEach(function (v) {
       var row = document.createElement('div');
       row.className = 'm-voter';
-      row.innerHTML = '<a target="_blank" rel="noopener"></a><span class="m-voter__song"></span><small></small>';
+      row.innerHTML = '<a target="_blank" rel="noopener"></a><span class="m-voter__song"></span><small></small>' +
+        '<button type="button" class="m-mini m-voter__follow"></button>';
+      var fb = row.querySelector('.m-voter__follow');
+      fb.textContent = v.verified ? 'Følger ✓' : 'Følger';
+      fb.classList.toggle('m-mini--solid', !!v.verified);
+      fb.title = v.verified ? 'Markeret som følger. Tryk for at fjerne.' : 'Tryk, når du har tjekket at de følger dig';
+      fb.addEventListener('click', function () {
+        fb.disabled = true;
+        admin('POST', 'follower', { campaign: CAMPAIGN.id, vote: v.id, verified: !v.verified }).then(function () {
+          v.verified = !v.verified;
+          renderVoters();
+          loadResults();
+        }, function (e) { fb.disabled = false; alert(e.message); });
+      });
       var a = row.querySelector('a');
       a.textContent = '@' + v.handle;
       a.href = 'https://instagram.com/' + encodeURIComponent(v.handle);
@@ -591,6 +614,7 @@
     $('rp-wait').textContent = wait;
     $('rp-novote').textContent = novote;
     $('story-count').textContent = 'Reposter · ' + reposts.length;
+    $('q-reposts').textContent = reposts.length;
     document.querySelectorAll('#rp-filter .m-chip').forEach(function (c) { c.classList.toggle('is-on', c.dataset.f === rpFilter); });
 
     var list = reposts.filter(function (r) {
@@ -739,6 +763,7 @@
     $('nf-sms').textContent = kinds.filter(function (k) { return k === 'sms'; }).length;
     $('notif-count').textContent = 'Notifikationer · ' + kinds.length;
     $('tab-notif').textContent = 'Notifikationer' + (kinds.length ? ' (' + kinds.length + ')' : '');
+    $('q-notif').textContent = kinds.length;
   }
 
   function copyList(kind) {

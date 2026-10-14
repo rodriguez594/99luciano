@@ -458,3 +458,19 @@ a.m-card:hover { border-color: var(--text); }
 .m-repost__actions { display: flex; gap: 6px; justify-content: flex-end; }
 #rp-filter { flex-wrap: wrap; margin: 6px 0 14px; }
 #reposter .m-stats { margin-top: 4px; }
+
+/* Quick overview on /management/vote */
+.m-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 22px; }
+.m-quick a { display: grid; gap: 4px; padding: 12px 10px; border: 2px solid var(--line); }
+.m-quick a:hover { border-color: var(--text); }
+.m-quick b { font-size: 1.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.m-quick span { font-size: 0.5rem; font-weight: 800; letter-spacing: 0.12em; color: var(--muted); overflow-wrap: anywhere; }
+/* All section tabs visible on a phone (no sideways scrolling) */
+.m-tabs { flex-wrap: wrap; overflow: visible; gap: 10px 18px; }
+/* Follower button on each vote */
+.m-voter__follow { grid-column: 1 / -1; justify-self: start; margin-top: 6px; }
+@media (max-width: 420px) {
+  .m-nav { gap: 4px; }
+  .m-nav a { flex: 1; padding: 10px 6px; text-align: center; letter-spacing: 0.1em; font-size: 0.58rem; }
+}
+.m-quick span { overflow-wrap: normal; }

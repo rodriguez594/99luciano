@@ -272,6 +272,15 @@ export const onRequest = handle(async (context) => {
       return json({ ok: true });
     }
 
+    // Mark one vote as following (or not), by hand
+    case 'POST follower': {
+      const b = await body(request);
+      const c = await getCampaign(DB, b.campaign);
+      const res = await DB.prepare('UPDATE votes SET verified = ? WHERE campaign = ? AND id = ?').bind(b.verified ? 1 : 0, c.id, Number(b.vote)).run();
+      if (!res.meta.changes) throw new HttpError(404, 'Stemmen findes ikke.');
+      return json({ ok: true });
+    }
+
     case 'POST verify': {
       const b = await body(request);
       const c = await getCampaign(DB, b.campaign);
@@ -310,7 +319,7 @@ export const onRequest = handle(async (context) => {
       const size = new Map();
       for (const g of groups.values()) size.set(g, (size.get(g) || 0) + 1);
       return json(votes.map((v) => ({
-        handle: v.handle, title: titles.get(v.song) || '', verified: !!v.verified, story: !!v.story, story_claimed: !!v.story_claimed,
+        id: v.id, handle: v.handle, title: titles.get(v.song) || '', verified: !!v.verified, story: !!v.story, story_claimed: !!v.story_claimed,
         flagged: size.get(groups.get(v.id)) > 1, grp: groups.get(v.id), created_at: v.created_at,
       })));
     }
