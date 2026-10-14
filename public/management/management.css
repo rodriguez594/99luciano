@@ -438,10 +438,8 @@ a.m-card:hover { border-color: var(--text); }
   .m-new { flex-direction: column; align-items: stretch; }
 }
 
-/* Stories */
-.m-story { border-left-color: var(--soft); }
-.m-story.is-ok { border-left-color: var(--text); }
-#story .m-new { margin: 18px 0 6px; }
+/* Reposter: add a username */
+#reposter .m-new { margin: 18px 0 6px; }
 
 /* Who voted for what */
 .result.is-link { cursor: pointer; }
@@ -453,3 +451,10 @@ a.m-card:hover { border-color: var(--text); }
 .m-voter a:hover { text-decoration: underline; }
 .m-voter__song { font-size: 0.72rem; font-weight: 800; text-align: right; }
 .m-voter small { grid-column: 1 / -1; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); }
+
+/* Reposters */
+.m-repost { border-left: 2px solid var(--line); padding-left: 12px; }
+.m-repost.is-ok { border-left-color: var(--text); }
+.m-repost__actions { display: flex; gap: 6px; justify-content: flex-end; }
+#rp-filter { flex-wrap: wrap; margin: 6px 0 14px; }
+#reposter .m-stats { margin-top: 4px; }

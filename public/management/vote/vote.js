@@ -573,39 +573,81 @@
   $('voters-search').addEventListener('input', function () { voterLimit = 100; renderVoters(); });
   $('voters-more').addEventListener('click', function () { voterLimit += 200; renderVoters(); });
 
-  // ---------- stories (double chance) ----------
+  // ---------- reposters (double chance) ----------
 
+  var reposts = [], rpFilter = 'all';
   function loadStories() {
     admin('GET', 'stories?campaign=' + C).then(function (rows) {
-      var ok = rows.filter(function (r) { return r.story; }).length;
-      var waiting = rows.length - ok;
-      $('story-count').textContent = 'Story · ' + ok + ' godkendt' + (waiting ? ' · ' + waiting + ' venter' : '');
-      var box = $('stories');
-      box.innerHTML = '';
-      if (!rows.length) box.innerHTML = '<p class="step__note">Ingen endnu.</p>';
-      rows.forEach(function (r) {
-        var row = document.createElement('div');
-        row.className = 'm-flag__row m-story' + (r.story ? ' is-ok' : '');
-        row.innerHTML = '<span class="m-flag__who"><b></b><small></small></span><button type="button" class="m-mini"></button>';
-        row.querySelector('b').textContent = '@' + r.handle;
-        row.querySelector('small').textContent = (r.story ? 'Godkendt · tæller dobbelt' : 'Siger de har delt') +
-          (r.verified ? ' · følger' : '') + ' · ' + r.title;
-        var btn = row.querySelector('button');
-        btn.textContent = r.story ? 'Fortryd' : 'Godkend';
-        if (!r.story) btn.classList.add('m-mini--solid');
-        btn.addEventListener('click', function () {
-          btn.disabled = true;
-          setStory({ vote: r.vote_id, story: !r.story });
-        });
-        box.appendChild(row);
-      });
+      reposts = rows;
+      renderReposts();
     }, function () {});
   }
 
+  function renderReposts() {
+    var ok = reposts.filter(function (r) { return r.story; }).length;
+    var wait = reposts.filter(function (r) { return !r.story; }).length;
+    var novote = reposts.filter(function (r) { return !r.voted; }).length;
+    $('rp-ok').textContent = ok;
+    $('rp-wait').textContent = wait;
+    $('rp-novote').textContent = novote;
+    $('story-count').textContent = 'Reposter · ' + reposts.length;
+    document.querySelectorAll('#rp-filter .m-chip').forEach(function (c) { c.classList.toggle('is-on', c.dataset.f === rpFilter); });
+
+    var list = reposts.filter(function (r) {
+      return rpFilter === 'all' || (rpFilter === 'ok' && r.story) || (rpFilter === 'wait' && !r.story) || (rpFilter === 'novote' && !r.voted);
+    });
+    var box = $('stories');
+    box.innerHTML = '';
+    if (!list.length) box.innerHTML = '<p class="step__note">' + (reposts.length ? 'Ingen her.' : 'Ingen reposter endnu.') + '</p>';
+    var fmt = function (iso) { return new Date(iso).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+    list.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'm-voter m-repost' + (r.story ? ' is-ok' : '');
+      row.innerHTML = '<a target="_blank" rel="noopener"></a><span class="m-repost__actions"></span><small></small>';
+      var a = row.querySelector('a');
+      a.textContent = '@' + r.handle;
+      a.href = 'https://instagram.com/' + encodeURIComponent(r.handle);
+      row.querySelector('small').textContent = [
+        r.story ? 'Godkendt' + (r.confirmed_at ? ' ' + fmt(r.confirmed_at) : '') + (r.voted ? ' · tæller dobbelt' : ' · dobbelt, når de stemmer') : r.claimed ? 'Siger de har delt · ' + fmt(r.created_at) : 'Tilføjet af dig',
+        r.voted ? 'stemte på ' + (r.title || 'en sang') : 'har ikke stemt endnu',
+        r.verified ? 'følger' : ''
+      ].filter(Boolean).join(' · ');
+      var actions = row.querySelector('.m-repost__actions');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'm-mini' + (r.story ? '' : ' m-mini--solid');
+      btn.textContent = r.story ? 'Fortryd' : 'Godkend';
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        setStory({ handle: r.handle, story: !r.story });
+      });
+      actions.appendChild(btn);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'm-mini m-del';
+      del.textContent = '×';
+      del.setAttribute('aria-label', 'Fjern @' + r.handle);
+      del.addEventListener('click', function () {
+        if (!confirm('Fjern @' + r.handle + ' fra reposter-listen?')) return;
+        admin('DELETE', 'story?campaign=' + C + '&handle=' + encodeURIComponent(r.handle)).then(function () {
+          loadStories();
+          loadResults();
+        }, function (e) { $('story-note').textContent = e.message; });
+      });
+      actions.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+
+  document.querySelectorAll('#rp-filter .m-chip').forEach(function (c) {
+    c.addEventListener('click', function () { rpFilter = c.dataset.f; renderReposts(); });
+  });
+
   function setStory(data) {
     data.campaign = CAMPAIGN.id;
-    return admin('POST', 'story', data).then(function () {
-      $('story-note').textContent = '';
+    return admin('POST', 'story', data).then(function (r) {
+      $('story-note').textContent = r && !r.voted && data.story
+        ? '@' + r.handle + ' har ikke stemt endnu. De får dobbelt chance, så snart de stemmer.' : '';
       loadStories();
       loadResults();
     }, function (e) { $('story-note').textContent = e.message; loadStories(); });

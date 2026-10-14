@@ -48,7 +48,7 @@
       </section>
 
       <nav class="m-tabs" aria-label="Sektioner">
-        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#story">Story</a><a href="#flag">Flag</a><a href="#besked">Besked</a><a href="#vinder">Vinder</a>
+        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#reposter">Reposter</a><a href="#flag">Flag</a><a href="#besked">Besked</a><a href="#vinder">Vinder</a>
       </nav>
 
       <!-- Giveaway settings -->
@@ -104,18 +104,29 @@
         </div>
       </section>
 
-      <!-- Instagram stories: double chance -->
-      <section class="m-sec" id="story">
-        <p class="label" id="story-count">Story · dobbelt chance</p>
-        <p class="step__note">Folk, der har delt afstemningen på deres Instagram story, trykker "Jeg har delt" og kommer på listen her.
-          Når du har set deres story (du får en besked, når nogen tagger dig), tryk "Godkend". Så tæller deres lod dobbelt i lodtrækningen.
-          Du kan også godkende et brugernavn, der ikke har trykket.</p>
+      <!-- Reposters: who shared the vote on their Instagram story (double chance) -->
+      <section class="m-sec" id="reposter">
+        <p class="label" id="story-count">Reposter</p>
+        <div class="m-stats">
+          <div><b id="rp-ok">0</b><span>Godkendt</span></div>
+          <div><b id="rp-wait">0</b><span>Venter</span></div>
+          <div><b id="rp-novote">0</b><span>Ikke stemt</span></div>
+        </div>
+        <p class="step__note">Folk, der deler afstemningen på deres story, trykker "Jeg har delt" og kommer på listen.
+          Tjek deres story (du får en besked, når nogen tagger dig), og tryk "Godkend". Så tæller deres lod dobbelt.
+          Har du set en repost fra en, der ikke står her, så skriv brugernavnet. Har de ikke stemt endnu, får de dobbelt chance, så snart de stemmer.</p>
         <div class="m-new">
           <input class="m-in" id="story-handle" type="text" placeholder="@brugernavn" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Brugernavn">
-          <button type="button" class="btn" id="story-add">Godkend</button>
+          <button type="button" class="btn" id="story-add">Tilføj</button>
         </div>
         <p class="step__note" id="story-note" aria-live="polite"></p>
-        <div id="stories" class="m-list"></div>
+        <div class="m-view" id="rp-filter" role="group" aria-label="Vis">
+          <button type="button" class="m-chip is-on" data-f="all">Alle</button>
+          <button type="button" class="m-chip" data-f="wait">Venter</button>
+          <button type="button" class="m-chip" data-f="ok">Godkendt</button>
+          <button type="button" class="m-chip" data-f="novote">Ikke stemt</button>
+        </div>
+        <div id="stories" class="m-list m-voters"></div>
       </section>
 
       <!-- Flagged votes -->

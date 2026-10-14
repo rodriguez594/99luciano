@@ -207,24 +207,60 @@ export const onRequest = handle(async (context) => {
     }
 
     // Votes that shared on their story (claimed by the voter, or confirmed by you)
+    // Everyone who reposted: pressed "Jeg har delt", or you added/confirmed them
     case 'GET stories': {
       const c = await getCampaign(DB, q('campaign'));
-      const { votes, titles } = await votesWithGroups(DB, c.id);
-      return json(votes
-        .filter((v) => v.story_claimed || v.story)
-        .map((v) => ({ vote_id: v.id, handle: v.handle, title: titles.get(v.song) || '', claimed: !!v.story_claimed, story: !!v.story, verified: !!v.verified, created_at: v.created_at }))
-        .sort((a, b) => a.story - b.story || a.created_at.localeCompare(b.created_at)));
+      // Votes marked before the reposts list existed
+      await DB.prepare(
+        `INSERT OR IGNORE INTO reposts (campaign, handle, claimed, confirmed, created_at, confirmed_at)
+         SELECT campaign, handle, story_claimed, story, created_at, CASE WHEN story = 1 THEN created_at END
+         FROM votes WHERE campaign = ? AND (story_claimed = 1 OR story = 1)`
+      ).bind(c.id).run();
+      const r = await DB.prepare(
+        `SELECT r.handle, r.claimed, r.confirmed, r.created_at, r.confirmed_at,
+           v.id AS vote_id, v.verified, s.title
+         FROM reposts r
+         LEFT JOIN votes v ON v.campaign = r.campaign AND v.handle = r.handle
+         LEFT JOIN songs s ON s.id = v.song
+         WHERE r.campaign = ? ORDER BY r.confirmed, r.created_at DESC`
+      ).bind(c.id).all();
+      return json(r.results.map((x) => ({
+        handle: x.handle, claimed: !!x.claimed, story: !!x.confirmed, voted: x.vote_id != null, vote_id: x.vote_id,
+        verified: !!x.verified, title: x.title || '', created_at: x.created_at, confirmed_at: x.confirmed_at,
+      })));
     }
 
-    // Confirm (or undo) a story, by vote id or by username
+    // Confirm (or undo) a repost by username. Works before they vote too.
     case 'POST story': {
       const b = await body(request);
       const c = await getCampaign(DB, b.campaign);
-      const h = b.handle != null ? normalizeHandle(b.handle) : null;
-      const res = h
-        ? await DB.prepare('UPDATE votes SET story = ? WHERE campaign = ? AND handle = ?').bind(b.story ? 1 : 0, c.id, h).run()
-        : await DB.prepare('UPDATE votes SET story = ? WHERE campaign = ? AND id = ?').bind(b.story ? 1 : 0, c.id, Number(b.vote)).run();
-      if (!res.meta.changes) throw new HttpError(404, h ? '@' + h + ' har ikke stemt.' : 'Stemmen findes ikke.');
+      let h = b.handle != null ? normalizeHandle(b.handle) : null;
+      if (!h && b.vote != null) {
+        const v = await DB.prepare('SELECT handle FROM votes WHERE campaign = ? AND id = ?').bind(c.id, Number(b.vote)).first();
+        h = v && v.handle;
+      }
+      if (!h) throw new HttpError(400, 'Skriv et Instagram-brugernavn.');
+      const on = b.story ? 1 : 0;
+      await DB.batch([
+        DB.prepare(
+          `INSERT INTO reposts (campaign, handle, confirmed, created_at, confirmed_at) VALUES (?1, ?2, ?3, ?4, CASE WHEN ?3 = 1 THEN ?4 END)
+           ON CONFLICT (campaign, handle) DO UPDATE SET confirmed = ?3, confirmed_at = CASE WHEN ?3 = 1 THEN ?4 END`
+        ).bind(c.id, h, on, now()),
+        DB.prepare('UPDATE votes SET story = ? WHERE campaign = ? AND handle = ?').bind(on, c.id, h),
+      ]);
+      const v = await DB.prepare('SELECT id FROM votes WHERE campaign = ? AND handle = ?').bind(c.id, h).first();
+      return json({ ok: true, handle: h, voted: !!v });
+    }
+
+    // Take someone off the reposters list (and their double chance)
+    case 'DELETE story': {
+      const c = await getCampaign(DB, q('campaign'));
+      const h = normalizeHandle(q('handle'));
+      if (!h) throw new HttpError(400, 'Ukendt brugernavn.');
+      await DB.batch([
+        DB.prepare('DELETE FROM reposts WHERE campaign = ? AND handle = ?').bind(c.id, h),
+        DB.prepare('UPDATE votes SET story = 0, story_claimed = 0 WHERE campaign = ? AND handle = ?').bind(c.id, h),
+      ]);
       return json({ ok: true });
     }
 

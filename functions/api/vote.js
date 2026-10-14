@@ -33,5 +33,12 @@ export const onRequestPost = handle(async ({ request, env }) => {
      ON CONFLICT (campaign, handle) DO NOTHING`
   ).bind(c.id, h, song.id, await ipHash(request, env, c.id), device, now()).run();
 
+  // Reposted (and confirmed) before voting: the double chance applies right away
+  if (res.meta.changes) {
+    await DB.prepare(
+      `UPDATE votes SET story = 1, story_claimed = 1 WHERE campaign = ?1 AND handle = ?2
+       AND EXISTS (SELECT 1 FROM reposts WHERE campaign = ?1 AND handle = ?2 AND confirmed = 1)`
+    ).bind(c.id, h).run();
+  }
   return json({ result: res.meta.changes ? 'ok' : 'already', handle: h });
 });
