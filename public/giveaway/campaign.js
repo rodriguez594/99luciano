@@ -95,10 +95,25 @@
 
   // ---------- text ----------
 
+  // "Gavekort på 150 kr. til hvad du vil" → label GAVEKORT, amount 150 KR., note TIL HVAD DU VIL
+  function renderPrize(prize) {
+    var m = prize.match(/^(.*?)(\d[\d.,]*)\s*(kr\.?|kroner|dkk)\s*(.*)$/i);
+    if (m) {
+      $('prize-label').textContent = /gavekort/i.test(m[1]) ? 'Gavekort' : (m[1].replace(/\s*(på|til|af)\s*$/i, '').trim() || 'Præmie');
+      $('prize-amount').textContent = m[2] + ' kr.';
+      $('prize-note').textContent = m[4].replace(/^[\s,.-]+/, '');
+    } else {
+      $('prize-label').textContent = 'Præmie';
+      $('prize-amount').textContent = prize || '–';
+      $('prize-note').textContent = '';
+    }
+    $('prize-amount').classList.toggle('is-long', $('prize-amount').textContent.length > 12);
+  }
+
   function renderSettings(status) {
-    $('prize').textContent = status.prize || '–';
+    renderPrize(status.prize || '');
     $('ends').textContent = status.ends_at
-      ? new Date(status.ends_at).toLocaleDateString('da-DK', { day: 'numeric', month: 'long' })
+      ? new Date(status.ends_at).toLocaleString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
       : '–';
     all('.goal').forEach(function (el) { el.textContent = status.goal; });
   }

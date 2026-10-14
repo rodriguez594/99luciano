@@ -7,8 +7,8 @@ Artist site for 99 LUCIANO, part of 99 (with 99MGMT, 99ENT and 99WRLDWIDE). In D
 This one runs on **Cloudflare Pages**:
 
 - `public/`: the website
-  - `index.html`: homepage
-  - `campaigns/`: the giveaway at 99luciano.dk/campaigns (`config.js` says which giveaway is shown)
+  - `index.html`: the front page of 99luciano.dk, which is the giveaway (vote for the next single). `/campaigns` redirects here
+  - `giveaway/`: its scripts; `giveaway/config.js` says which giveaway is shown
   - `management/`: 99luciano.dk/management, where you edit the giveaway and songs, see votes and draw the winner
 - `functions/`: the server code (Cloudflare Pages Functions), `/api/...` and `/files/...`
 - `lib/`: code shared by the functions
@@ -70,7 +70,7 @@ Now 99luciano.dk/management asks for your email, sends a code, and lets you in. 
 - **Clips:** press "Vælg sang" and pick the whole song (MP3, WAV, M4A…). Choose 15, 30, 45 or 60 seconds, drag the window on the waveform to the part you want, press "Lyt" to hear it, then "Gem klip". The clip is cut and turned into an MP3 in your browser, with a short fade in and out. Only the clip is uploaded, never the whole song.
 - **Stemmer / Flag / Besked / Vinder:** votes per song (and people, when some are flagged), flagged groups, notification sign-ups, follower check and the draw. Votes and sign-ups download as CSV.
 
-For the next giveaway, change `CAMPAIGN.id` in `public/campaigns/config.js` to a new id. Votes, songs and sign-ups start from zero.
+For the next giveaway, change `CAMPAIGN.id` in `public/giveaway/config.js` to a new id. Votes, songs and sign-ups start from zero.
 
 ## Preview mode
 

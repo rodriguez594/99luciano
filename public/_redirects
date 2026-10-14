@@ -1,3 +1,6 @@
-/campaign   /campaigns/  301
-/giveaway   /campaigns/  302
-/admin      /management/ 302
+/campaigns   /  301
+/campaigns/  /  301
+/campaign    /  301
+/giveaway    /  302
+/giveaway/   /  302
+/admin       /management/  302
