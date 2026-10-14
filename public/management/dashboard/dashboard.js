@@ -37,6 +37,17 @@
       box.appendChild(row);
     });
 
+    $('nf-total').textContent = v.signups + (v.signups === 1 ? ' tilmeldt' : ' tilmeldte');
+    var nf = $('nf-latest');
+    nf.innerHTML = '';
+    if (!d.notify_latest.length) nf.appendChild(el('p', 'step__note', 'Ingen har bedt om besked endnu.'));
+    d.notify_latest.forEach(function (r) {
+      var row = el('div', 'signup');
+      row.appendChild(el('span', null, r.kind === 'sms' ? '+' + r.contact : r.contact));
+      row.appendChild(el('span', null, Admin.date(r.created_at, true)));
+      nf.appendChild(row);
+    });
+
     var active = d.projects.filter(function (p) { return p.status !== 'done'; });
     var songs = 0, versions = 0;
     d.projects.forEach(function (p) { songs += p.counts.songs; versions += p.counts.versions; });

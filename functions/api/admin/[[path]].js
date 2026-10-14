@@ -59,7 +59,7 @@ export const onRequest = handle(async (context) => {
     // Everything /management/dashboard shows
     case 'GET dashboard': {
       const c = await getCampaign(DB, q('campaign'));
-      const [votes, songs, signups, projects, recent] = await Promise.all([
+      const [votes, songs, signups, projects, recent, latest] = await Promise.all([
         DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE campaign = ?').bind(c.id).first(),
         DB.prepare(
           `SELECT s.id, s.title, s.cover_key, s.snippet_key, (SELECT COUNT(*) FROM votes v WHERE v.song = s.id) AS votes
@@ -68,6 +68,7 @@ export const onRequest = handle(async (context) => {
         DB.prepare('SELECT (SELECT COUNT(*) FROM notify WHERE campaign = ?1) + (SELECT COUNT(*) FROM winner_notify WHERE campaign = ?1) AS n').bind(c.id).first(),
         projectList(DB),
         recentVersions(DB),
+        DB.prepare('SELECT kind, contact, created_at FROM winner_notify WHERE campaign = ? ORDER BY id DESC LIMIT 5').bind(c.id).all(),
       ]);
       return json({
         vote: {
@@ -78,6 +79,7 @@ export const onRequest = handle(async (context) => {
         },
         projects,
         recent,
+        notify_latest: latest.results,
       });
     }
 

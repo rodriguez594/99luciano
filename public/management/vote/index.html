@@ -48,7 +48,7 @@
       </section>
 
       <nav class="m-tabs" aria-label="Sektioner">
-        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#reposter">Reposter</a><a href="#flag">Flag</a><a href="#besked">Besked</a><a href="#vinder">Vinder</a>
+        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#besked" id="tab-notif">Notifikationer</a><a href="#reposter">Reposter</a><a href="#flag">Flag</a><a href="#vinder">Vinder</a>
       </nav>
 
       <!-- Giveaway settings -->
@@ -104,6 +104,30 @@
         </div>
       </section>
 
+      <!-- Notifications: who wants a message -->
+      <section class="m-sec" id="besked">
+        <p class="label" id="notif-count">Notifikationer</p>
+        <div class="m-stats">
+          <div><b id="nf-winner">0</b><span>Om vinderen</span></div>
+          <div><b id="nf-email">0</b><span>Emails</span></div>
+          <div><b id="nf-sms">0</b><span>Telefonnumre</span></div>
+        </div>
+        <p class="step__note">Dem, der har skrevet deres email eller nummer på /vote. Intet bliver sendt endnu: listen bliver gemt, indtil der er koblet en email- og SMS-tjeneste på (fx Resend og Twilio). Du kan kopiere eller hente listen og skrive til dem selv.</p>
+
+        <p class="label" id="winner-count" style="margin-top:28px">Besked om vinderen</p>
+        <div id="winner-signups" class="m-list"></div>
+        <div class="actions">
+          <button class="btn" id="copy-emails">Kopiér emails</button>
+          <button class="btn" id="copy-phones">Kopiér numre</button>
+          <button class="btn" id="export-winner">Hent liste (CSV)</button>
+        </div>
+        <p class="step__note" id="copy-note" aria-live="polite"></p>
+
+        <p class="label" id="signup-count" style="margin-top:48px">Besked når den åbner</p>
+        <div id="signups" class="m-list"></div>
+        <button class="btn" id="export-signups">Hent liste (CSV)</button>
+      </section>
+
       <!-- Reposters: who shared the vote on their Instagram story (double chance) -->
       <section class="m-sec" id="reposter">
         <p class="label" id="story-count">Reposter</p>
@@ -136,18 +160,6 @@
           Ingen bliver afvist. Samme netværk kan være en familie på samme wifi eller et mobilnet, så kig selv efter:
           er det en anden person, tryk "Egen person", så får de deres eget lod.</p>
         <div id="flags"></div>
-      </section>
-
-      <!-- Notification sign-ups -->
-      <section class="m-sec" id="besked">
-        <p class="label" id="winner-count">Besked om vinderen</p>
-        <p class="step__note">Dem, der vil have besked, når vinderen er trukket. Numre og emails bliver kun gemt, indtil der er koblet en email- og SMS-tjeneste på (fx Resend og Twilio).</p>
-        <div id="winner-signups" class="m-list"></div>
-        <button class="btn" id="export-winner">Hent liste (CSV)</button>
-
-        <p class="label" id="signup-count" style="margin-top:48px">Besked når den åbner</p>
-        <div id="signups" class="m-list"></div>
-        <button class="btn" id="export-signups">Hent liste (CSV)</button>
       </section>
 
       <!-- Winner -->

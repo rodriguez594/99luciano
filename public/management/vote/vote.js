@@ -714,29 +714,58 @@
   }
 
   var signups = [], winnerSignups = [];
+  // Newest first, with when they signed up
   function signupRows(box, rows) {
     box.innerHTML = '';
     if (!rows.length) box.innerHTML = '<p class="step__note">Ingen endnu.</p>';
-    rows.forEach(function (r) {
+    rows.slice().reverse().forEach(function (r) {
       var div = document.createElement('div');
       div.className = 'signup';
       div.innerHTML = '<span></span><span></span>';
       div.firstChild.textContent = r.kind === 'sms' ? '+' + r.contact : r.contact;
-      div.lastChild.textContent = r.notified_at ? 'Sendt' : r.kind === 'sms' ? 'SMS' : 'Email';
+      div.lastChild.textContent = (r.notified_at ? 'Sendt' : r.kind === 'sms' ? 'SMS' : 'Email') + ' · ' +
+        new Date(r.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
       box.appendChild(div);
     });
   }
+
+  function renderNotifCounts() {
+    var all = winnerSignups.concat(signups);
+    var unique = {};
+    all.forEach(function (r) { unique[r.contact] = r.kind; });
+    var kinds = Object.keys(unique).map(function (k) { return unique[k]; });
+    $('nf-winner').textContent = winnerSignups.length;
+    $('nf-email').textContent = kinds.filter(function (k) { return k === 'email'; }).length;
+    $('nf-sms').textContent = kinds.filter(function (k) { return k === 'sms'; }).length;
+    $('notif-count').textContent = 'Notifikationer · ' + kinds.length;
+    $('tab-notif').textContent = 'Notifikationer' + (kinds.length ? ' (' + kinds.length + ')' : '');
+  }
+
+  function copyList(kind) {
+    var list = winnerSignups.filter(function (r) { return r.kind === kind; })
+      .map(function (r) { return kind === 'sms' ? '+' + r.contact : r.contact; });
+    var note = $('copy-note');
+    if (!list.length) { note.textContent = kind === 'sms' ? 'Ingen numre endnu.' : 'Ingen emails endnu.'; return; }
+    var text = list.join(kind === 'sms' ? '\n' : ', ');
+    var done = function () { note.textContent = list.length + (kind === 'sms' ? ' numre' : ' emails') + ' kopieret.'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { prompt('Kopiér:', text); });
+    else prompt('Kopiér:', text);
+  }
+  $('copy-emails').addEventListener('click', function () { copyList('email'); });
+  $('copy-phones').addEventListener('click', function () { copyList('sms'); });
 
   function loadSignups() {
     admin('GET', 'signups?campaign=' + C).then(function (rows) {
       signups = rows;
       $('signup-count').textContent = 'Besked når den åbner · ' + rows.length;
       signupRows($('signups'), rows);
+      renderNotifCounts();
     }, function () {});
     admin('GET', 'winner-signups?campaign=' + C).then(function (rows) {
       winnerSignups = rows;
       $('winner-count').textContent = 'Besked om vinderen · ' + rows.length;
       signupRows($('winner-signups'), rows);
+      renderNotifCounts();
     }, function () {});
   }
 
