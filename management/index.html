@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="da" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>99 LUCIANO | Management</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
+  <link rel="apple-touch-icon" href="../assets/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css?v=dev">
+  <link rel="stylesheet" href="management.css?v=dev">
+</head>
+<body>
+  <header class="nav">
+    <a href="../" class="nav__brand" aria-label="99 LUCIANO">
+      <img src="../assets/mark-160.png" alt="" width="34" height="31">
+      <span>LUCIANO</span>
+    </a>
+    <button type="button" class="m-logout" id="logout" hidden>Log ud</button>
+  </header>
+
+  <main class="m">
+    <p class="label">Management</p>
+    <h1 class="display" id="title">Log ind</h1>
+
+    <!-- Login -->
+    <section id="login" hidden>
+      <p class="step__note">Skriv din email. Du får et link, der logger dig ind.</p>
+      <form id="login-form" class="form-row" novalidate>
+        <div class="field"><input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" placeholder="Email" required></div>
+        <button class="btn btn--solid btn--wide" id="send">Send login-link</button>
+      </form>
+      <p class="step__note" id="login-note" aria-live="polite"></p>
+    </section>
+
+    <!-- Logged in, but not on the list -->
+    <section id="denied" hidden>
+      <p class="step__note">Du er logget ind som <b id="denied-email"></b>, men har ikke adgang.
+        Tilføj emailen i <code>luciano_admins</code> i Supabase (se README).</p>
+    </section>
+
+    <div id="panel" hidden>
+      <nav class="m-tabs" aria-label="Sektioner">
+        <a href="#giveaway">Giveaway</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#besked">Besked</a><a href="#vinder">Vinder</a>
+      </nav>
+
+      <!-- Giveaway settings -->
+      <section class="m-sec" id="giveaway">
+        <p class="label">Giveaway</p>
+        <p class="lock__count" style="font-size:3rem"><span id="followers">–</span><small>/ <span id="goal-now">–</span></small></p>
+        <p class="step__note" id="state"></p>
+
+        <form id="settings" class="m-form">
+          <label class="m-field"><span>Præmie</span><input id="s-prize" type="text" maxlength="120"></label>
+          <label class="m-field"><span>Kunstner (vises under numrene)</span><input id="s-artist" type="text" maxlength="60"></label>
+          <label class="m-field"><span>Slutter</span><input id="s-ends" type="datetime-local"></label>
+          <label class="m-field"><span>Følgere før den åbner</span><input id="s-goal" type="number" inputmode="numeric" min="0" step="1"></label>
+          <label class="m-field"><span>Stemmer per netværk (wifi / IP)</span><input id="s-max-ip" type="number" inputmode="numeric" min="1" step="1"></label>
+          <label class="m-check"><input id="s-closed" type="checkbox"> <span>Luk for stemmer nu</span></label>
+          <button class="btn btn--solid" id="save-settings">Gem</button>
+          <p class="step__note" id="settings-note" aria-live="polite"></p>
+        </form>
+
+        <div class="m-sub">
+          <p class="step__note">Antallet af følgere hentes automatisk fra Instagram, når tokenet er sat op (se README). Ellers kan du skrive det her.</p>
+          <div class="field"><input id="manual" type="number" inputmode="numeric" min="0" placeholder="Antal følgere"></div>
+          <div class="actions">
+            <button class="btn" id="set-followers">Gem antal</button>
+            <button class="btn" id="open-now">Åbn giveaway nu</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Songs -->
+      <section class="m-sec" id="sange">
+        <p class="label">Sange</p>
+        <p class="step__note">Et nummer vises på siden, når det har en titel og et klip. Covers bliver beskåret til kvadrat.</p>
+        <ol class="m-songs" id="songs"></ol>
+        <button class="btn btn--solid btn--wide" id="add-song">+ Tilføj sang</button>
+      </section>
+
+      <!-- Votes -->
+      <section class="m-sec" id="stemmer">
+        <p class="label" id="totals">Stemmer</p>
+        <div id="results" class="m-list"></div>
+        <div class="actions">
+          <button class="btn" id="refresh">Opdater</button>
+          <button class="btn" id="export">Hent stemmer (CSV)</button>
+        </div>
+      </section>
+
+      <!-- Notification sign-ups -->
+      <section class="m-sec" id="besked">
+        <p class="label" id="signup-count">Vil have besked</p>
+        <div id="signups" class="m-list"></div>
+        <button class="btn" id="export-signups">Hent liste (CSV)</button>
+      </section>
+
+      <!-- Winner -->
+      <section class="m-sec" id="vinder">
+        <p class="label">Tjek følgere</p>
+        <p class="step__note">Instagram → Indstillinger → Kontocenter → Dine oplysninger og tilladelser → Download dine oplysninger →
+          Følgere og fulgte, format JSON. Upload followers_1.json her, eller indsæt brugernavne, ét per linje.
+          Dem, der ikke er på listen, tæller som ikke-følgere.</p>
+        <input type="file" id="file" accept=".json,.html,.txt,.csv" class="m-file">
+        <textarea id="followers-list" placeholder="brugernavn&#10;brugernavn"></textarea>
+        <button class="btn btn--solid" id="verify">Tjek stemmer</button>
+        <p class="step__note" id="verify-note"></p>
+
+        <p class="label" style="margin-top:48px">Træk vinder</p>
+        <p class="step__note">Vælger én tilfældig stemme blandt dem, der følger.</p>
+        <button class="btn btn--solid" id="draw">Træk</button>
+        <p id="winner"></p>
+        <p class="step__note" id="winner-note"></p>
+      </section>
+    </div>
+  </main>
+
+  <template id="song-tpl">
+    <li class="m-song">
+      <label class="m-cover art" title="Skift cover">
+        <input type="file" accept="image/*" class="m-cover-input">
+        <span class="m-cover-hint">Cover</span>
+      </label>
+      <div class="m-song__body">
+        <input class="m-in m-title" type="text" maxlength="80" placeholder="Titel">
+        <input class="m-in m-artist" type="text" maxlength="60">
+        <div class="m-audio"></div>
+        <div class="m-song__actions">
+          <label class="m-mini">Upload klip<input type="file" accept="audio/*" class="m-snippet-input"></label>
+          <button type="button" class="m-mini m-up" aria-label="Flyt op">↑</button>
+          <button type="button" class="m-mini m-down" aria-label="Flyt ned">↓</button>
+          <button type="button" class="m-mini m-del">Slet</button>
+        </div>
+        <p class="m-song__state"></p>
+      </div>
+    </li>
+  </template>
+
+  <script src="../main.js?v=dev"></script>
+  <script src="../campaigns/config.js?v=dev"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="management.js?v=dev"></script>
+</body>
+</html>

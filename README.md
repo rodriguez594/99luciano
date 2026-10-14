@@ -4,35 +4,46 @@ Artist site for 99 LUCIANO, part of 99 (with 99MGMT, 99ENT and 99WRLDWIDE). In D
 
 - `index.html`: homepage
 - `campaigns/`: the giveaway at 99luciano.dk/campaigns
-- `campaigns/config.js`: **edit this.** Songs, prize, end date, follower goal and the Supabase keys
-- `campaigns/snippets/`: the MP3 snippets
-- `campaigns/covers/`: square album covers. Each one is used for the sleeve in the grid, the big sleeve when it plays, and the label in the middle of the record
-- `campaigns/admin.html`: follower count, votes, notification list, follower check and winner draw
-- `supabase/schema.sql`: tables and functions the site calls
+- `management/`: 99luciano.dk/management. Log in to edit the giveaway and its songs, see votes and draw the winner
+- `campaigns/config.js`: which giveaway is shown, the Instagram handle and the Supabase keys
+- `supabase/schema.sql`: tables, access rules and functions
 - `supabase/functions/luciano-status/`: fetches the Instagram follower count and sends the "it's open" messages
 
-This repo is public (needed for free GitHub Pages), so anything in it, including the snippets, is public.
+The repo is public (needed for free GitHub Pages). Songs, covers and snippets are not in it: they're uploaded at /management and stored in Supabase.
 
 ## How the giveaway works
 
-1. **Locked** until @99luciano0 has 150 followers. The page shows the count, updated every 30 seconds, and two things:
+1. **Locked** until @99luciano0 has enough followers (150 by default). The page shows the count, updated every 30 seconds, and two things:
    - sign up with an email or phone number to get a message when it opens
    - a button to share the Instagram profile
-2. **Open** once the goal is reached. It stays open even if followers drop again. People follow, enter their username, listen to the snippets and vote. One vote per username.
-3. When it ends, check followers and draw the winner on the admin page.
+2. **Open** once the goal is reached. It stays open even if followers drop again. People follow, enter their username, tap a cover to hear the snippet, and vote.
+3. When it ends, check followers and draw the winner at /management.
+
+### One vote per person
+
+Three checks, all enforced by the database:
+
+- **Instagram username:** each username can vote once.
+- **Device:** the browser gets a random id, kept in both a cookie and local storage, and the server allows one vote per id. Clearing one of them isn't enough, and the page keeps showing "du er med" after a vote.
+- **Network (IP):** at most 3 votes from the same IP. Families on one wifi and mobile carriers share IPs, so 1 would block real people. Change the number at /management.
+
+Someone determined can still get around this, for example with several phones on mobile data. That's why the winner is only drawn among votes from real followers (see below).
 
 ## Setup
 
-### 1. Supabase (votes, sign-ups, follower count)
+### 1. Supabase
 
-Same setup as 99MS. You can use the 99MS project; every table here starts with `luciano_`.
+Same setup as 99MS. You can use the 99MS project; everything here starts with `luciano_`.
 
-1. Supabase → SQL Editor. Open `supabase/schema.sql` and set the campaign row at the bottom (id, song ids, end date, goal) to match `campaigns/config.js`. Uncomment the `luciano_admin` line and put in a long password for the admin page. Run it.
+1. Supabase → SQL Editor. Open `supabase/schema.sql`, put your email in the `luciano_admins` line at the bottom and uncomment it. Run it. This also creates the `luciano` storage bucket for covers and snippets.
 2. Supabase → Project Settings → API. Copy the project URL and the anon key into `SUPABASE` in `campaigns/config.js`.
-3. Deploy the edge function:
+3. Supabase → Authentication → URL Configuration → Redirect URLs: add `https://99luciano.dk/management/` (the login link goes there).
+4. Deploy the edge function:
    ```sh
    supabase functions deploy luciano-status --no-verify-jwt
    ```
+
+To give someone else access, add their email: `insert into luciano_admins (email) values ('navn@email.dk');`
 
 ### 2. Instagram follower count
 
@@ -46,7 +57,7 @@ The follower count comes from Instagram's official API, which needs a profession
    update luciano_ig set token = 'IGAA...', token_refreshed_at = now() where id = 1;
    ```
 
-The edge function renews the token every week, so it doesn't expire. Until a token is set, you can type the follower count on the admin page, or press "Åbn giveaway nu" to open it by hand.
+The edge function renews the token every week, so it doesn't expire. Until a token is set, you can type the follower count at /management, or press "Åbn giveaway nu".
 
 ### 3. Messages when it opens (optional)
 
@@ -57,7 +68,7 @@ People who sign up get an email or SMS when the giveaway opens. The edge functio
 - **SMS** through [GatewayAPI](https://gatewayapi.com) (Danish, roughly 25 øre per SMS). Create an API token, then run:
   `supabase secrets set GATEWAYAPI_TOKEN=...`
 
-Without the keys, sign-ups are still saved. The admin page lists them and can export them as CSV so you can message people yourself.
+Without the keys, sign-ups are still saved. /management lists them and can export them as CSV.
 
 ### 4. Publishing
 
@@ -69,21 +80,21 @@ One-time setup: repo Settings → Pages → Source: **GitHub Actions**.
 1. At the DNS provider for 99luciano.dk, add `A` records for `99luciano.dk` → 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153, and a `CNAME` `www` → `rodriguez594.github.io`.
 2. Repo Settings → Pages → Custom domain: `99luciano.dk`. Tick "Enforce HTTPS" once GitHub has issued the certificate.
 
-## Running a giveaway
+## Running a giveaway (at /management)
 
-1. Put the snippets in `campaigns/snippets/` and the covers in `campaigns/covers/`, and list them in `campaigns/config.js` (id, title, file, cover, and artist if it differs).
-2. Make sure the id, song ids, end date and goal match the `luciano_campaigns` row in Supabase. The server checks against that row.
-3. Push to `main`.
+- **Giveaway:** prize, artist name, end date, follower goal, votes per network, and "Luk for stemmer nu".
+- **Sange:** add songs, set title and artist (empty = the giveaway's artist), upload a cover (cropped to a square and shrunk automatically) and a snippet (MP3, max 15 MB), reorder with the arrows. A song shows up on the page once it has a title and a snippet. A song that has votes can't be deleted.
+- **Stemmer / Besked:** votes per song and the notification sign-ups, both downloadable as CSV.
+- **Vinder:** check followers and draw the winner.
 
-To close early, run `update luciano_campaigns set open = false where id = '...'` in Supabase.
-For the next giveaway, use a new id so votes and sign-ups start from zero.
+For the next giveaway, change `CAMPAIGN.id` in `campaigns/config.js` to a new id. The giveaway is created the first time you open /management, and votes, sign-ups and songs start from zero.
 
 ### Checking followers and drawing the winner
 
 Instagram's API gives the follower count but not who follows, so the check uses your own follower list:
 
 1. When the giveaway ends, go to Instagram → Settings → Accounts Centre → Your information and permissions → Download your information → Followers and following, format JSON.
-2. Open 99luciano.dk/campaigns/admin.html, log in with the admin password and upload `followers_1.json`. Every vote is marked as following or not.
+2. At /management → Vinder, upload `followers_1.json`. Every vote is marked as following or not.
 3. Press "Træk". It picks a random vote from people who follow.
 
 ## Run locally
@@ -92,4 +103,4 @@ Instagram's API gives the follower count but not who follows, so the check uses 
 python3 -m http.server 8000
 ```
 
-Then open http://localhost:8000.
+Then open http://localhost:8000. Logging in at /management needs `http://localhost:8000/management/` in Supabase's redirect URLs.

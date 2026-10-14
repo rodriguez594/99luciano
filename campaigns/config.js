@@ -1,19 +1,9 @@
-// Giveaway settings. The id, song ids, end date and goal must match the row in
-// supabase/schema.sql (luciano_campaigns), which is what the server checks.
+// Which giveaway this page shows. Everything else (prize, end date, follower goal,
+// songs, covers and snippets) is edited at /management and stored in Supabase.
 var CAMPAIGN = {
   id: 'next-single-2026',
   instagram: '99luciano0',
-  prize: 'Gavekort på 150 kr. til hvad du vil',
-  goal: 150,                 // followers needed before voting opens
-  endsAt: '2026-11-15T23:59:00+01:00',
-  snippetSeconds: 30,
-  artist: '99 LUCIANO',      // shown under each song; a song can set its own (e.g. with a feature)
-  // cover: square album art in covers/ (e.g. 1000×1000 JPG). Until it's added, the sleeve is plain black with the 99 mark.
-  songs: [
-    { id: 'song-1', title: 'Sang et', file: 'snippets/song-1.mp3', cover: '' },
-    { id: 'song-2', title: 'Sang to', file: 'snippets/song-2.mp3', cover: '' },
-    { id: 'song-3', title: 'Sang tre', file: 'snippets/song-3.mp3', cover: '' }
-  ]
+  snippetSeconds: 30        // snippets stop after this many seconds
 };
 
 // Supabase: Project Settings → API (the same project as 99MS works fine; the giveaway

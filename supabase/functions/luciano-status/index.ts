@@ -40,11 +40,11 @@ const why = (e: unknown) => (e && typeof e === "object" && "message" in e ? Stri
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 const LINK = `${SITE}/campaigns/`;
-const SMS_TEXT = `99 LUCIANO: Giveawayen er åben! Stem på næste single og vær med i lodtrækningen om et gavekort på 150 kr.: ${LINK}`;
+const SMS_TEXT = `99 LUCIANO: Giveawayen er åben! Hør klippene, stem på næste single og vær med i lodtrækningen: ${LINK}`;
 const MAIL_SUBJECT = "Giveawayen er åben";
 const MAIL_TEXT =
   `Hej!\n\nGiveawayen hos 99 LUCIANO er åben nu.\n\n` +
-  `Hør klippene, stem på næste single, og vær med i lodtrækningen om et gavekort på 150 kr. til hvad du vil:\n${LINK}\n\n` +
+  `Hør klippene, stem på næste single, og vær med i lodtrækningen:\n${LINK}\n\n` +
   `Du får kun denne ene besked.\n\n99 LUCIANO`;
 
 // Asks Instagram for the follower count (and renews the token once a week).
