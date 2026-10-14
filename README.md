@@ -10,7 +10,7 @@ This one runs on **Cloudflare Pages**:
   - `index.html`: the front page of 99luciano.dk, a portfolio with app icons for the socials (`SOCIALS` in `giveaway/config.js`; add the Spotify link there when it exists). While a vote is running it also shows "Stem på min næste single og vind et gavekort på 150 kr.", linking to /vote
   - `vote/`: the giveaway at 99luciano.dk/vote (vote for the next single). `/campaigns` and `/giveaway` redirect here
   - `giveaway/`: the giveaway's scripts; `giveaway/config.js` says which giveaway is shown and lists the socials
-  - `management/`: 99luciano.dk/management, where you edit the giveaway and songs, see votes and draw the winner
+  - `management/`: 99luciano.dk/management (opens /management/dashboard): `dashboard/` (overview), `vote/` (edit and publish the vote, see votes, draw the winner) and `projects/` (projects, goals and the song tracker)
 - `functions/`: the server code (Cloudflare Pages Functions), `/api/...` and `/files/...`
 - `lib/`: code shared by the functions
 
@@ -59,17 +59,28 @@ Now 99luciano.dk/management asks for your email, sends a code, and lets you in. 
 
 ## How the giveaway works
 
-- New giveaways **start open**. The follower lock is optional: set "Følgere før den åbner" at /management and use "Åbn giveaway nu" to open it by hand.
+- New giveaways start as an **unpublished draft**: /vote says "Afstemningen åbner snart" until you press **Udgiv** at /management/vote. "Skjul" hides it again.
+- /vote shows a live **countdown** to the end date, and the time of the **draw on Instagram Live** with the rule that the winner has to be in the livestream within 5 minutes.
+- People can leave an email or phone number to **hear when the winner is drawn**. These are only saved for now (list and CSV under Besked); nothing is sent until an email/SMS service is connected.
+- The follower lock is optional: set "Følgere før den åbner" at /management and use "Åbn giveaway nu" to open it by hand.
 - People follow, type their Instagram username and tap a cover: it grows, the other two in the row move aside, and the record slides out and spins while the clip plays. Then they vote. The same username twice is one vote.
 - **Flagging instead of blocking:** nobody is turned away. Each vote stores a random device id (cookie + local storage) and a hash of the network (the IP itself isn't stored). Votes that share one are grouped under **Flag** at /management, and a group counts as **one entry** in the draw. If someone in a group is clearly a different person (a family on the same wifi), press "Egen person".
 - **Winner:** download your follower list from Instagram (Settings → Accounts Centre → Your information and permissions → Download your information → Followers and following, JSON), upload `followers_1.json` under Vinder, then press "Træk". It picks among entries from people who follow, and tells you if the winner was flagged with anyone.
 
 ## At /management
 
-- **Giveaway:** prize, artist name, end date, follower goal, "Luk for stemmer nu".
-- **Sange:** add songs, set title and artist (empty = the giveaway's artist), and upload a cover (cropped to a square and shrunk automatically). No cover means a white sleeve with a black record. Reorder with the arrows. A song shows up once it has a title and a clip, and a song with votes can't be deleted.
+- **Dashboard:** the vote (status, votes, songs ready, sign-ups, top songs), active projects with their goals, and the latest versions.
+- **Afstemning → Udgiv / Skjul:** publish the vote (needs at least one song with a title and a clip).
+- **Indstillinger:** prize, artist name, end date (the countdown), the Instagram Live draw time, follower goal, "Luk for stemmer nu".
+- **Sange:** add songs, set title and artist (empty = the giveaway's artist), and upload a cover (cropped to a square and shrunk automatically). No cover means a white sleeve with a black record. Reorder with the arrows. A song shows up once it has a title and a clip. Deleting a song also deletes its votes, so those people can vote again.
 - **Clips:** press "Vælg sang" and pick the whole song (MP3, WAV, M4A…). Choose 15, 30, 45 or 60 seconds, drag the window on the waveform to the part you want, press "Lyt" to hear it, then "Gem klip". The clip is cut and turned into an MP3 in your browser, with a short fade in and out. Only the clip is uploaded, never the whole song.
 - **Stemmer / Flag / Besked / Vinder:** votes per song (and people, when some are flagged), flagged groups, notification sign-ups, follower check and the draw. Votes and sign-ups download as CSV.
+
+### Projekter
+
+- Create a project, then add **goals**: a number of songs, versions or songs with album art (these count themselves) or a manual count with − / +.
+- **Song tracker:** press **+** → "Tilføj ny sang" or "Tilføj eksisterende sang" (adds a new version), and pick audio files (any format, several at once). Only the file's name, the version and the date are read; the audio is never uploaded. The version comes from the file name (`Natlys v3.wav`, `Natlys_master.mp3`, `Natlys (version 2).m4a`), or the next number. The date comes from the file name (`2026-10-12`, `12.10.26`) or when the file was last saved. You can check and change all three before adding. A new-song title the project already has becomes a new version of that song.
+- **Album art:** tap the cover on a song. Every cover is kept; pick which one shows under "Versioner og covers". "Covers" switches to a grid of all album art.
 
 For the next giveaway, change `CAMPAIGN.id` in `public/giveaway/config.js` to a new id. Votes, songs and sign-ups start from zero.
 

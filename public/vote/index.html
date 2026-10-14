@@ -42,6 +42,18 @@
       <dl class="facts reveal">
         <dt>Afstemning slutter</dt><dd id="ends"></dd>
       </dl>
+      <!-- Live countdown to the end of the vote -->
+      <div class="countdown reveal" id="countdown" hidden aria-label="Tid tilbage">
+        <div><b data-cd="d">0</b><span>Dage</span></div>
+        <div><b data-cd="h">00</b><span>Timer</span></div>
+        <div><b data-cd="m">00</b><span>Min</span></div>
+        <div><b data-cd="s">00</b><span>Sek</span></div>
+      </div>
+      <!-- The draw on Instagram Live (time set at /management/vote) -->
+      <div class="draw reveal" data-draw hidden>
+        <p class="draw__when"></p>
+        <p class="draw__rule">Du skal være til stede i livestreamen for at modtage præmien, ellers bliver en ny vinder trukket. Du har 5 minutter, fra du har vundet.</p>
+      </div>
     </div>
 
     <!-- Locked: until the Instagram account reaches the goal -->
@@ -130,6 +142,8 @@
         </li>
       </ol>
 
+      <div class="winner-notify" data-winner-notify></div>
+
       <div class="submit">
         <p class="submit__msg" id="msg" role="alert" hidden></p>
         <button type="button" class="btn btn--solid" id="submit" disabled>Vælg et nummer</button>
@@ -145,17 +159,28 @@
         <div id="done-song-row"><dt>Din stemme</dt><dd id="done-song"></dd></div>
       </dl>
       <p class="done__note" id="done-already" hidden></p>
-      <p class="done__note">Vinderen bliver offentliggjort på Instagram, når giveawayen slutter.</p>
+      <p class="done__note" id="done-when">Vinderen bliver offentliggjort på Instagram, når giveawayen slutter.</p>
+      <div class="draw" data-draw hidden>
+        <p class="draw__when"></p>
+        <p class="draw__rule">Du skal være til stede i livestreamen for at modtage præmien, ellers bliver en ny vinder trukket. Du har 5 minutter, fra du har vundet.</p>
+      </div>
       <p class="done__note">Bliv ved med at følge. Hvis du stopper før lodtrækningen, er du ude.</p>
+      <div class="winner-notify" data-winner-notify></div>
       <button type="button" class="btn btn--solid share-ig" style="margin-top:28px"><span>Del <span class="ig-handle"></span></span></button>
     </div>
 
-    <!-- Closed -->
     <!-- Closed: the vote is over -->
     <div id="closed" hidden>
-      <p class="label">Lukket</p>
-      <h1 class="display">Afstemningen er slut.</h1>
-      <p class="vote__intro">Tak til alle, der stemte. Vinderen og den nye single kommer på Instagram.</p>
+      <p class="label" id="closed-label">Lukket</p>
+      <h1 class="display" id="closed-title">Afstemningen er slut.</h1>
+      <p class="vote__intro" id="closed-text">Tak til alle, der stemte. Vinderen og den nye single kommer på Instagram.</p>
+      <div id="closed-draw">
+        <div class="draw" data-draw hidden>
+          <p class="draw__when"></p>
+          <p class="draw__rule">Du skal være til stede i livestreamen for at modtage præmien, ellers bliver en ny vinder trukket. Du har 5 minutter, fra du har vundet.</p>
+        </div>
+        <div class="winner-notify" data-winner-notify></div>
+      </div>
       <nav class="apps apps--left" aria-label="Find mig her"></nav>
     </div>
   </main>

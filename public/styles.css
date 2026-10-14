@@ -194,6 +194,24 @@ em, i { font-style: normal; }
 .facts dd { margin: 0; font-weight: 800; }
 
 /* The prize as a gift card: white, card proportions, a slow sheen */
+/* Countdown to the end of the vote */
+.countdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 420px; margin: 18px 0 0; }
+.countdown div { display: grid; justify-items: center; gap: 6px; padding: 14px 4px 12px; border: 2px solid var(--line); }
+.countdown b { font-size: clamp(1.5rem, 7vw, 2.1rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.countdown span { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.2em; color: var(--muted); }
+
+/* The draw on Instagram Live, and its rule */
+.draw { margin: 22px 0 0; padding: 16px 0 0 16px; border-left: 2px solid var(--text); max-width: 46ch; }
+.draw p { margin: 0; }
+.draw__when { font-weight: 800; font-size: 0.9rem; line-height: 1.4; }
+.draw__rule { margin-top: 8px !important; font-size: 0.74rem; line-height: 1.5; color: var(--soft); }
+.done .draw, #done .draw { margin-bottom: 18px; }
+
+/* "Tell me when the winner is drawn" */
+.winner-notify { margin: 40px 0 0; padding-top: 28px; border-top: 1px solid var(--line); max-width: 520px; }
+.winner-notify .label { margin-bottom: 14px; }
+#open .winner-notify { margin: 8px 0 32px; }
+
 .giftcard { margin: 34px 0 0; }
 .giftcard__card {
   position: relative;

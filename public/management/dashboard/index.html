@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="da" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>99 LUCIANO | Dashboard</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="apple-touch-icon" href="../../assets/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css?v=dev">
+  <link rel="stylesheet" href="../management.css?v=dev">
+</head>
+<body>
+  <header class="nav">
+    <a href="../../" class="nav__brand" aria-label="99 LUCIANO">
+      <img src="../../assets/mark-160.png" alt="" width="34" height="31">
+      <span>LUCIANO</span>
+    </a>
+    <a class="m-logout" id="logout" href="/cdn-cgi/access/logout" hidden>Log ud</a>
+  </header>
+
+  <main class="m">
+    <nav class="m-nav" aria-label="Management">
+      <a href="../dashboard/" aria-current="page">Dashboard</a><a href="../vote/">Afstemning</a><a href="../projects/">Projekter</a>
+    </nav>
+    <h1 class="display" id="title">Dashboard</h1>
+
+    <section id="login" hidden>
+      <p class="step__note" id="login-note">Henter…</p>
+    </section>
+
+    <div id="panel" hidden>
+      <p class="step__note" id="dash-note" aria-live="polite"></p>
+
+      <!-- The vote -->
+      <a class="m-card" href="../vote/" id="vote-card">
+        <div class="m-card__head">
+          <p class="label">Afstemning</p>
+          <span class="m-pill" id="vote-state">–</span>
+        </div>
+        <div class="m-stats">
+          <div><b id="vote-votes">–</b><span>Stemmer</span></div>
+          <div><b id="vote-songs">–</b><span>Sange klar</span></div>
+          <div><b id="vote-signups">–</b><span>Vil have besked</span></div>
+        </div>
+        <p class="step__note" id="vote-ends"></p>
+        <div class="m-mini-results" id="vote-results"></div>
+        <span class="m-card__go">Tilpas og udgiv →</span>
+      </a>
+
+      <!-- Projects -->
+      <section class="m-sec">
+        <div class="m-card__head">
+          <p class="label">Projekter</p>
+          <a class="m-mini" href="../projects/">Alle projekter</a>
+        </div>
+        <div class="m-stats" id="proj-stats">
+          <div><b id="tot-projects">–</b><span>Aktive projekter</span></div>
+          <div><b id="tot-songs">–</b><span>Sange</span></div>
+          <div><b id="tot-versions">–</b><span>Versioner</span></div>
+        </div>
+        <div id="proj-list" class="m-projects"></div>
+      </section>
+
+      <!-- Latest versions -->
+      <section class="m-sec">
+        <p class="label">Seneste versioner</p>
+        <div id="recent" class="m-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../../main.js?v=dev"></script>
+  <script src="../../giveaway/config.js?v=dev"></script>
+  <script src="../admin.js?v=dev"></script>
+  <script src="../projects/cards.js?v=dev"></script>
+  <script src="dashboard.js?v=dev"></script>
+</body>
+</html>

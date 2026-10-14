@@ -1,4 +1,6 @@
-// POST /api/notify { campaign, contact }  Sign up for a message when the giveaway opens.
+// POST /api/notify { campaign, contact, purpose }  Sign up for a message:
+//   purpose 'open' (default): when the giveaway opens
+//   purpose 'winner': when the winner is drawn (only saved for now; nothing is sent yet)
 // Takes an email or a phone number (8 digits are read as Danish).
 // Returns { result: 'ok' | 'already' | 'open' | 'bad_contact' }.
 import { getDb, getCampaign, ipHash, json, body, handle, now } from '../../lib/db.js';
@@ -16,9 +18,18 @@ export const onRequestPost = handle(async ({ request, env }) => {
   const DB = await getDb(env);
   const b = await body(request);
   const c = await getCampaign(DB, b.campaign);
-  if (c.unlocked_at) return json({ result: 'open' });
-
   const n = normalizeContact(b.contact);
+
+  if (b.purpose === 'winner') {
+    if (!n) return json({ result: 'bad_contact' });
+    const res = await DB.prepare(
+      `INSERT INTO winner_notify (campaign, kind, contact, ip_hash, created_at) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (campaign, contact) DO NOTHING`
+    ).bind(c.id, n.kind, n.contact, await ipHash(request, env, c.id), now()).run();
+    return json({ result: res.meta.changes ? 'ok' : 'already' });
+  }
+
+  if (c.unlocked_at) return json({ result: 'open' });
   if (!n) return json({ result: 'bad_contact' });
 
   const res = await DB.prepare(

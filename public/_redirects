@@ -4,4 +4,6 @@
 /giveaway    /vote/  302
 /giveaway/   /vote/  302
 /stem        /vote/  302
-/admin       /management/  302
+/admin       /management/dashboard/  302
+/management  /management/dashboard/  302
+/management/ /management/dashboard/  302

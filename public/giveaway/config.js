@@ -45,8 +45,9 @@ var API = {
     return apiFetch('/api/vote', { campaign: CAMPAIGN.id, handle: handle, song: song, device: device })
       .then(function (r) { return r.result; });
   },
-  notify: function (contact) {
-    return apiFetch('/api/notify', { campaign: CAMPAIGN.id, contact: contact })
+  // purpose: 'open' (tell me when the giveaway opens) or 'winner' (tell me when the winner is drawn)
+  notify: function (contact, purpose) {
+    return apiFetch('/api/notify', { campaign: CAMPAIGN.id, contact: contact, purpose: purpose || 'open' })
       .then(function (r) { return r.result; });
   }
 };

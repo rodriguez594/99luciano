@@ -3,6 +3,7 @@ import { getDb, getCampaign, isClosed, fileUrl, json, body, handle, now, HttpErr
 import { groupVotes, flagReasons, randomInt } from '../../../lib/groups.js';
 import { setFollowers } from '../../../lib/background.js';
 import { normalizeHandle } from '../vote.js';
+import { PROJECT_SECTIONS, projectRoutes, projectList, recentVersions } from '../../../lib/projects.js';
 
 const MAX_FILE = 15 * 1024 * 1024;
 
@@ -14,6 +15,8 @@ export const onRequest = handle(async (context) => {
   const route = request.method + ' ' + (section || '') + (id ? '/:id' : '');
   const q = (k) => url.searchParams.get(k);
 
+  if (PROJECT_SECTIONS.has(section)) return projectRoutes(context, DB, route, id);
+
   switch (route) {
     case 'GET me':
       return json({ email: data.email });
@@ -21,8 +24,9 @@ export const onRequest = handle(async (context) => {
     // Opened as a normal page so Cloudflare Access can show its login for /api/admin,
     // then sends you back to /management.
     case 'GET login': {
-      const back = q('return') || '/management/';
-      return Response.redirect(new URL(back.startsWith('/') && !back.startsWith('//') ? back : '/management/', url.origin).toString(), 302);
+      const back = q('return') || '/management/dashboard/';
+      const safe = back.startsWith('/') && !back.startsWith('//') && !back.startsWith('/\\') ? back : '/management/dashboard/';
+      return Response.redirect(new URL(safe, url.origin).toString(), 302);
     }
 
     // ---------- giveaway settings ----------
@@ -36,10 +40,45 @@ export const onRequest = handle(async (context) => {
       if (!Number.isFinite(goal)) throw new HttpError(400, 'Skriv et antal følgere.');
       const ends = b.ends_at ? new Date(b.ends_at) : null;
       if (ends && isNaN(ends)) throw new HttpError(400, 'Ugyldig slutdato.');
-      await DB.prepare('UPDATE campaigns SET prize = ?, artist = ?, ends_at = ?, goal = ?, open = ? WHERE id = ?')
+      const draw = b.draw_at ? new Date(b.draw_at) : null;
+      if (draw && isNaN(draw)) throw new HttpError(400, 'Ugyldigt tidspunkt for lodtrækningen.');
+      await DB.prepare('UPDATE campaigns SET prize = ?, artist = ?, ends_at = ?, draw_at = ?, goal = ?, open = ? WHERE id = ?')
         .bind(String(b.prize || '').slice(0, 120), String(b.artist || '').trim().slice(0, 60) || '99 LUCIANO',
-          ends ? ends.toISOString() : null, goal, b.open ? 1 : 0, c.id).run();
+          ends ? ends.toISOString() : null, draw ? draw.toISOString() : null, goal, b.open ? 1 : 0, c.id).run();
       return json(campaignOut(await getCampaign(DB, c.id)));
+    }
+
+    // Publish puts the vote on 99luciano.dk/vote (and the button on the front page); unpublish hides it again
+    case 'POST publish': {
+      const b = await body(request);
+      const c = await getCampaign(DB, b.campaign);
+      await DB.prepare('UPDATE campaigns SET published = ? WHERE id = ?').bind(b.published ? 1 : 0, c.id).run();
+      return json(campaignOut(await getCampaign(DB, c.id)));
+    }
+
+    // Everything /management/dashboard shows
+    case 'GET dashboard': {
+      const c = await getCampaign(DB, q('campaign'));
+      const [votes, songs, signups, projects, recent] = await Promise.all([
+        DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE campaign = ?').bind(c.id).first(),
+        DB.prepare(
+          `SELECT s.id, s.title, s.cover_key, s.snippet_key, (SELECT COUNT(*) FROM votes v WHERE v.song = s.id) AS votes
+           FROM songs s WHERE s.campaign = ? ORDER BY s.position, s.created_at`
+        ).bind(c.id).all(),
+        DB.prepare('SELECT (SELECT COUNT(*) FROM notify WHERE campaign = ?1) + (SELECT COUNT(*) FROM winner_notify WHERE campaign = ?1) AS n').bind(c.id).first(),
+        projectList(DB),
+        recentVersions(DB),
+      ]);
+      return json({
+        vote: {
+          ...campaignOut(c), closed: !!isClosed(c), votes: votes.n, signups: signups.n,
+          songs: songs.results.map((s) => ({
+            id: s.id, title: s.title, votes: s.votes, cover_url: fileUrl(s.cover_key), ready: !!(s.title && s.snippet_key),
+          })),
+        },
+        projects,
+        recent,
+      });
     }
 
     case 'POST followers': {
@@ -60,7 +99,7 @@ export const onRequest = handle(async (context) => {
     case 'GET status': {
       const c = await getCampaign(DB, q('campaign'));
       const ig = await DB.prepare('SELECT followers FROM ig WHERE id = 1').first();
-      return json({ followers: ig ? ig.followers : 0, goal: c.goal, unlocked: !!c.unlocked_at, closed: !!isClosed(c) });
+      return json({ followers: ig ? ig.followers : 0, goal: c.goal, unlocked: !!c.unlocked_at, closed: !!isClosed(c), published: !!c.published });
     }
 
     // ---------- songs ----------
@@ -90,9 +129,11 @@ export const onRequest = handle(async (context) => {
 
     case 'DELETE songs/:id': {
       const s = await getSong(DB, id);
-      const v = await DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE song = ?').bind(s.id).first();
-      if (v.n > 0) throw new HttpError(409, 'Har stemmer, kan ikke slettes');
-      await DB.prepare('DELETE FROM songs WHERE id = ?').bind(s.id).run();
+      // The song's votes go with it, so those voters can vote again on another song
+      await DB.batch([
+        DB.prepare('DELETE FROM votes WHERE song = ?').bind(s.id),
+        DB.prepare('DELETE FROM songs WHERE id = ?').bind(s.id),
+      ]);
       await removeFiles(env, [s.cover_key, s.snippet_key]);
       return json({ ok: true });
     }
@@ -215,12 +256,22 @@ export const onRequest = handle(async (context) => {
       const r = await DB.prepare('SELECT kind, contact, created_at, notified_at FROM notify WHERE campaign = ? ORDER BY id').bind(c.id).all();
       return json(r.results);
     }
+
+    // "Tell me when the winner is drawn"
+    case 'GET winner-signups': {
+      const c = await getCampaign(DB, q('campaign'));
+      const r = await DB.prepare('SELECT kind, contact, created_at, notified_at FROM winner_notify WHERE campaign = ? ORDER BY id').bind(c.id).all();
+      return json(r.results);
+    }
   }
   throw new HttpError(404, 'Ukendt adresse.');
 });
 
 function campaignOut(c) {
-  return { id: c.id, prize: c.prize, artist: c.artist, ends_at: c.ends_at, goal: c.goal, open: !!c.open, unlocked_at: c.unlocked_at };
+  return {
+    id: c.id, prize: c.prize, artist: c.artist, ends_at: c.ends_at, draw_at: c.draw_at, goal: c.goal, open: !!c.open,
+    published: !!c.published, unlocked_at: c.unlocked_at,
+  };
 }
 
 async function getSong(DB, id) {

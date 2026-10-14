@@ -9,6 +9,9 @@ export const onRequestGet = handle(async ({ request, env, waitUntil }) => {
   const c = await getCampaign(DB, url.searchParams.get('campaign'));
   waitUntil(backgroundWork(DB, env, url.origin).catch((e) => console.error(String(e))));
 
+  // A draft isn't shown to visitors at all
+  if (!c.published) return json({ published: false, closed: true, songs: [] });
+
   const [ig, songs] = await Promise.all([
     DB.prepare('SELECT followers FROM ig WHERE id = 1').first(),
     DB.prepare(
@@ -19,9 +22,11 @@ export const onRequestGet = handle(async ({ request, env, waitUntil }) => {
   ]);
 
   return json({
+    published: true,
     prize: c.prize,
     artist: c.artist,
     ends_at: c.ends_at,
+    draw_at: c.draw_at,
     followers: ig ? ig.followers : 0,
     goal: c.goal,
     unlocked: !!c.unlocked_at,

@@ -35,6 +35,7 @@
       prize: 'Gavekort på 150 kr. til hvad du vil',
       artist: '99 LUCIANO',
       ends_at: '2026-11-15T22:59:00Z',
+      draw_at: '2026-11-20T23:00:00Z',
       followers: open ? 162 : followers,
       goal: 150,
       unlocked: open,

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="da" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>99 LUCIANO | Projekter</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="apple-touch-icon" href="../../assets/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css?v=dev">
+  <link rel="stylesheet" href="../management.css?v=dev">
+</head>
+<body>
+  <header class="nav">
+    <a href="../../" class="nav__brand" aria-label="99 LUCIANO">
+      <img src="../../assets/mark-160.png" alt="" width="34" height="31">
+      <span>LUCIANO</span>
+    </a>
+    <a class="m-logout" id="logout" href="/cdn-cgi/access/logout" hidden>Log ud</a>
+  </header>
+
+  <main class="m">
+    <nav class="m-nav" aria-label="Management">
+      <a href="../dashboard/">Dashboard</a><a href="../vote/">Afstemning</a><a href="../projects/" aria-current="page">Projekter</a>
+    </nav>
+    <h1 class="display" id="title">Projekter</h1>
+
+    <section id="login" hidden>
+      <p class="step__note" id="login-note">Henter…</p>
+    </section>
+
+    <div id="panel" hidden>
+      <!-- All projects -->
+      <div id="list-view" hidden>
+        <form class="m-new" id="new-project">
+          <input class="m-in" id="new-title" type="text" maxlength="80" placeholder="Nyt projekt, fx Album 2027" aria-label="Projektnavn">
+          <button class="btn btn--solid" id="new-btn">Opret</button>
+        </form>
+        <p class="step__note" id="list-note" aria-live="polite"></p>
+        <div id="projects" class="m-projects"></div>
+        <p class="label m-done-label" id="done-label" hidden>Færdige</p>
+        <div id="projects-done" class="m-projects"></div>
+      </div>
+
+      <!-- One project -->
+      <div id="detail-view" hidden>
+        <a class="m-back" href="./">← Alle projekter</a>
+
+        <section class="m-sec m-sec--first">
+          <input class="m-in m-ptitle" id="p-title" type="text" maxlength="80" aria-label="Projektnavn">
+          <textarea class="m-notes" id="p-notes" maxlength="2000" placeholder="Noter om projektet"></textarea>
+          <div class="m-prow">
+            <label class="m-field"><span>Deadline</span><input id="p-due" type="date"></label>
+            <label class="m-check"><input id="p-done" type="checkbox"> <span>Færdigt</span></label>
+          </div>
+          <p class="step__note" id="p-note" aria-live="polite"></p>
+        </section>
+
+        <!-- Goals -->
+        <section class="m-sec" id="goals-sec">
+          <p class="label">Mål</p>
+          <div id="goals"></div>
+          <details class="m-add-goal" id="add-goal">
+            <summary class="m-mini">+ Tilføj mål</summary>
+            <form id="goal-form" class="m-form">
+              <label class="m-field"><span>Mål</span><input id="g-title" type="text" maxlength="80" placeholder="Fx 12 sange færdige"></label>
+              <label class="m-field"><span>Tæller</span>
+                <select id="g-kind" class="m-select">
+                  <option value="songs">Sange i trackeren (automatisk)</option>
+                  <option value="versions">Versioner i trackeren (automatisk)</option>
+                  <option value="art">Sange med album art (automatisk)</option>
+                  <option value="manual">Manuelt (du tæller selv)</option>
+                </select>
+              </label>
+              <div class="m-prow">
+                <label class="m-field"><span>Antal</span><input id="g-target" type="number" inputmode="numeric" min="1" value="10"></label>
+                <label class="m-field"><span>Deadline (valgfri)</span><input id="g-due" type="date"></label>
+              </div>
+              <button class="btn btn--solid">Tilføj mål</button>
+            </form>
+          </details>
+        </section>
+
+        <!-- Song tracker -->
+        <section class="m-sec" id="tracker">
+          <div class="m-card__head">
+            <p class="label" id="tracker-count">Sange</p>
+            <div class="m-plus-wrap">
+              <button type="button" class="m-plus" id="plus" aria-haspopup="menu" aria-expanded="false" aria-label="Tilføj">+</button>
+              <div class="m-menu" id="plus-menu" role="menu" hidden>
+                <button type="button" role="menuitem" data-mode="new">Tilføj ny sang<small>Hver fil bliver en sang</small></button>
+                <button type="button" role="menuitem" data-mode="existing">Tilføj eksisterende sang<small>Filen bliver en ny version</small></button>
+              </div>
+            </div>
+          </div>
+          <p class="step__note">Vælg lydfiler (alle formater). Kun navn, version og dato bliver læst, selve lyden bliver aldrig lagt op.
+            Skriv versionen i filnavnet, fx <code>Natlys v3.wav</code>, <code>Natlys_master.mp3</code> eller <code>Natlys (version 2).m4a</code>.</p>
+          <p class="step__note" id="tracker-note" aria-live="polite"></p>
+          <div class="m-view" role="group" aria-label="Visning">
+            <button type="button" class="m-chip is-on" data-view="list">Liste</button>
+            <button type="button" class="m-chip" data-view="grid">Covers</button>
+          </div>
+          <div id="songs" class="m-tracks"></div>
+        </section>
+
+        <section class="m-sec">
+          <button type="button" class="m-mini m-del" id="p-delete">Slet projekt</button>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <input type="file" id="audio-input" multiple hidden
+    accept="audio/*,.mp3,.wav,.wave,.aif,.aiff,.aifc,.flac,.m4a,.aac,.alac,.ogg,.oga,.opus,.wma,.caf,.amr,.mid,.midi,.webm,.weba,.mp4,.3gp,.m4r,.dsf,.dff,.ape,.wv,.mka,.ac3,.au,.snd">
+
+  <!-- Pick the song a new version belongs to -->
+  <dialog class="m-sheet" id="pick">
+    <form method="dialog">
+      <p class="label">Vælg sang</p>
+      <div id="pick-list" class="m-pick"></div>
+      <div class="m-sheet__actions"><button class="m-mini" value="cancel">Annuller</button></div>
+    </form>
+  </dialog>
+
+  <!-- Check what was read from the files before adding them -->
+  <dialog class="m-sheet" id="review">
+    <form method="dialog" id="review-form">
+      <p class="label" id="review-title">Tilføj</p>
+      <p class="step__note" id="review-note"></p>
+      <div id="review-list" class="m-review"></div>
+      <div class="m-sheet__actions">
+        <button class="m-mini" value="cancel" formnovalidate>Annuller</button>
+        <button class="m-mini m-mini--solid" value="ok" id="review-ok">Tilføj til tracker</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="../../main.js?v=dev"></script>
+  <script src="../admin.js?v=dev"></script>
+  <script src="cards.js?v=dev"></script>
+  <script src="filename.js?v=dev"></script>
+  <script src="projects.js?v=dev"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@
   var all = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
   var STORE = 'luciano:entries';
   var NOTIFY_STORE = 'luciano:notify';
+  var WINNER_STORE = 'luciano:winner-notify';
   var POLL = 30000;
   var IG_URL = 'https://instagram.com/' + CAMPAIGN.instagram;
 
@@ -116,7 +117,130 @@
       ? new Date(status.ends_at).toLocaleString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
       : '–';
     all('.goal').forEach(function (el) { el.textContent = status.goal; });
+    endsAt = status.ends_at ? Date.parse(status.ends_at) : null;
+    countdown();
+    renderDraw(status.draw_at);
   }
+
+  // ---------- countdown to the end of the vote ----------
+
+  var endsAt = null, cdTimer = 0;
+  function countdown() {
+    clearTimeout(cdTimer);
+    var box = $('countdown');
+    var left = endsAt ? endsAt - Date.now() : -1;
+    box.hidden = !(left > 0);
+    if (!(left > 0)) return;
+    var sec = Math.floor(left / 1000);
+    var parts = { d: Math.floor(sec / 86400), h: Math.floor(sec / 3600) % 24, m: Math.floor(sec / 60) % 60, s: sec % 60 };
+    all('[data-cd]').forEach(function (el) {
+      var k = el.dataset.cd;
+      el.textContent = k === 'd' ? parts.d : ('0' + parts[k]).slice(-2);
+    });
+    // The vote just ended: ask the server, so the page switches to "closed"
+    if (sec <= 0) { poll(); return; }
+    cdTimer = setTimeout(countdown, 1000 - (Date.now() % 1000) + 20);
+  }
+
+  // ---------- the draw on Instagram Live ----------
+
+  // "fredag den 23. oktober kl. 00:00" in Danish time, wherever the visitor is
+  function danishTime(iso) {
+    var d = new Date(iso), p = {};
+    try {
+      new Intl.DateTimeFormat('da-DK', {
+        timeZone: 'Europe/Copenhagen', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+      }).formatToParts(d).forEach(function (x) { p[x.type] = x.value; });
+    } catch (e) {
+      p = { weekday: d.toLocaleDateString('da-DK', { weekday: 'long' }), day: d.getDate(), month: d.toLocaleDateString('da-DK', { month: 'long' }),
+        hour: ('0' + d.getHours()).slice(-2), minute: ('0' + d.getMinutes()).slice(-2) };
+    }
+    return p.weekday + ' den ' + p.day + '. ' + p.month + ' kl. ' + p.hour + ':' + p.minute;
+  }
+
+  var drawAt = null;
+  function renderDraw(iso) {
+    drawAt = iso ? Date.parse(iso) : null;
+    var done = drawAt && drawAt < Date.now();
+    all('[data-draw]').forEach(function (box) {
+      box.hidden = !drawAt;
+      if (drawAt) {
+        box.querySelector('.draw__when').textContent = done
+          ? 'Vinderen blev trukket på Instagram Live ' + danishTime(iso) + '.'
+          : 'Vinderen bliver trukket på Instagram Live ' + danishTime(iso) + '.';
+      }
+    });
+    $('done-when').hidden = !!drawAt;
+    // Once the winner is drawn there is nothing left to sign up for
+    all('[data-winner-notify]').forEach(function (box) { box.hidden = !!done; });
+  }
+
+  // ---------- tell me when the winner is drawn ----------
+
+  // One small form, shown in the open, done and closed views. Contacts are only saved for now.
+  function mountWinnerNotify(box) {
+    box.innerHTML =
+      '<p class="label">Få besked om vinderen</p>' +
+      '<div class="form-row">' +
+      '  <div class="field"><input type="text" inputmode="email" autocomplete="email" autocapitalize="none" autocorrect="off"' +
+      '    spellcheck="false" maxlength="200" placeholder="Email eller telefon" enterkeyhint="send" aria-label="Email eller telefon"></div>' +
+      '  <p class="step__note">Vi siger til, når vinderen er trukket. Vi bruger det ikke til andet.</p>' +
+      '  <button type="button" class="btn btn--wide">Giv mig besked</button>' +
+      '</div>' +
+      '<div class="winner-notify__done" hidden><p class="follow-link"><span></span><span class="follow-link__state">Tilmeldt</span></p>' +
+      '  <p class="step__note">Du får besked, når vinderen er trukket.</p></div>';
+    var input = box.querySelector('input'), btn = box.querySelector('button'), note = box.querySelector('.step__note');
+    var hint = note.textContent;
+
+    function send() {
+      var value = input.value.trim();
+      if (!value) {
+        note.textContent = 'Skriv en email eller et telefonnummer.';
+        note.classList.add('is-error');
+        input.focus();
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Sender…';
+      API.notify(value, 'winner').then(function (result) {
+        if (result === 'ok' || result === 'already') {
+          var saved = load(WINNER_STORE);
+          saved[CAMPAIGN.id] = value;
+          save(WINNER_STORE, saved);
+          all('[data-winner-notify]').forEach(showWinnerSignedUp);
+          return;
+        }
+        note.textContent = result === 'bad_contact' ? 'Skriv en email eller et telefonnummer.' : 'Noget gik galt. Prøv igen.';
+        note.classList.add('is-error');
+      }, function (e) {
+        note.textContent = e.message === 'offline' ? 'Ingen forbindelse. Prøv igen.' : e.message;
+        note.classList.add('is-error');
+      }).then(function () {
+        btn.disabled = false;
+        btn.textContent = 'Giv mig besked';
+      });
+    }
+    btn.addEventListener('click', send);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
+    input.addEventListener('input', function () {
+      note.classList.remove('is-error');
+      note.textContent = hint;
+    });
+  }
+
+  function showWinnerSignedUp(box) {
+    var contact = load(WINNER_STORE)[CAMPAIGN.id];
+    if (!contact) return;
+    box.querySelector('.form-row').hidden = true;
+    var done = box.querySelector('.winner-notify__done');
+    done.hidden = false;
+    done.querySelector('span').textContent = contact;
+  }
+
+  all('[data-winner-notify]').forEach(function (box) {
+    mountWinnerNotify(box);
+    showWinnerSignedUp(box);
+  });
 
   all('.ig-handle').forEach(function (el) { el.textContent = '@' + CAMPAIGN.instagram; });
   all('.ig-link').forEach(function (el) { el.href = IG_URL; });
@@ -161,7 +285,19 @@
     if (!status) return;
     renderSettings(status);
     renderSongs(status.songs || []);
-    if (status.closed) { show('closed'); return; }
+    if (status.closed) {
+      // Not published yet (a draft at /management/vote) vs. ended
+      var soon = status.published === false;
+      $('closed-label').textContent = soon ? 'Snart' : 'Lukket';
+      $('closed-title').textContent = soon ? 'Afstemningen åbner snart.' : 'Afstemningen er slut.';
+      $('closed-text').textContent = soon
+        ? 'Følg med på Instagram, så du ved, når du kan stemme på min næste single.'
+        : 'Tak til alle, der stemte. Vinderen og den nye single kommer på Instagram.';
+      $('closed-draw').hidden = soon;
+      if (soon) $('countdown').hidden = true;
+      show('closed');
+      return;
+    }
     if (view === 'done') return;
     renderCount(status.followers, status.goal);
     $('lock-note').textContent = 'Opdateres hvert 30. sekund';

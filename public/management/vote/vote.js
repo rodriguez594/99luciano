@@ -1,4 +1,4 @@
-// /management: edit the giveaway and its songs (covers and snippets are uploaded to the site),
+// /management/vote: publish the vote, edit the giveaway and its songs (covers and snippets are uploaded to the site),
 // see votes, review flagged votes and draw a winner. The login is Cloudflare Access, which
 // sits in front of this page and /api/admin; the server checks it on every request.
 (function () {
@@ -8,90 +8,9 @@
   var editors = {};      // song id → clip being picked (survives the list redrawing)
   var C = encodeURIComponent(CAMPAIGN.id);
 
-  // ---------- talking to /api/admin ----------
-
-  function admin(method, path, data, raw) {
-    // Access answers a logged-out request with a redirect to its login page; don't follow it
-    var opts = { method: method, headers: {}, redirect: 'manual' };
-    if (raw) {
-      opts.body = raw;
-      opts.headers['content-type'] = raw.type || 'application/octet-stream';
-    } else if (data !== undefined) {
-      opts.body = JSON.stringify(data);
-      opts.headers['content-type'] = 'application/json';
-    }
-    return fetch('/api/admin/' + path, opts).then(function (res) {
-      if (res.type === 'opaqueredirect' || res.status === 0) {
-        var r = new Error('login');
-        r.status = 401;
-        throw r;
-      }
-      var isJson = (res.headers.get('content-type') || '').indexOf('application/json') === 0;
-      if (!isJson) {
-        // Access answers with its login page (or a redirect) when the session ran out
-        var e = new Error(res.status === 404 ? 'noapi' : 'login');
-        e.status = res.status;
-        throw e;
-      }
-      return res.json().then(function (out) {
-        if (!res.ok) {
-          var e = new Error(out.error || 'Noget gik galt.');
-          e.status = res.status;
-          throw e;
-        }
-        return out;
-      });
-    }, function () {
-      throw new Error('Ingen forbindelse. Prøv igen.');
-    });
-  }
-
-  function show(id) {
-    $('login').hidden = id !== 'login';
-    $('panel').hidden = id !== 'panel';
-    $('logout').hidden = id !== 'panel';
-  }
-
-  function download(name, rows) {
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv' }));
-    a.download = name;
-    a.click();
-  }
-
-  // ---------- start ----------
-
-  function init() {
-    show('login');
-    admin('GET', 'me').then(function () {
-      show('panel');
-      loadAll();
-    }, function (e) {
-      var note = $('login-note');
-      $('title').textContent = 'Log ind';
-      if (e.message === 'setup' || e.message === 'noapi') {
-        note.textContent = 'Login er ikke sat op endnu. Slå Cloudflare Access til for /management og /api/admin, ' +
-          'og sæt ACCESS_TEAM_DOMAIN og ACCESS_AUD på Pages-projektet (se README).';
-      } else if (e.message === 'denied') {
-        $('title').textContent = 'Ingen adgang';
-        note.textContent = 'Din email har ikke adgang. Tilføj den i Cloudflare Access-reglen for /management.';
-      } else if (e.message === 'login') {
-        // Log in for /api/admin as a normal page visit, then come back (at most once a minute, so it can't loop)
-        var last = 0;
-        try { last = Number(sessionStorage.getItem('luciano:admin-login')) || 0; } catch (x) {}
-        if (Date.now() - last > 60000) {
-          try { sessionStorage.setItem('luciano:admin-login', String(Date.now())); } catch (x) {}
-          note.textContent = 'Logger ind…';
-          location.href = '/api/admin/login?return=' + encodeURIComponent(location.pathname);
-          return;
-        }
-        note.innerHTML = 'Login virker ikke endnu. Tjek at Cloudflare Access-reglen dækker både /management og /api/admin ' +
-          'med din email, og <a href="/api/admin/login?return=%2Fmanagement%2F" style="text-decoration:underline">prøv igen</a>.';
-      } else {
-        note.textContent = e.message;
-      }
-    });
-  }
+  var admin = Admin.api;
+  var download = Admin.download;
+  var squareJpeg = Admin.squareJpeg;
 
   function loadAll() {
     loadCampaign();
@@ -106,6 +25,7 @@
     return admin('GET', 'campaign?campaign=' + C).then(function (c) {
       campaign = c;
       fillSettings();
+      renderPublish();
       renderSongs();
     }, function (e) { $('settings-note').textContent = e.message; });
   }
@@ -114,9 +34,48 @@
     admin('GET', 'status?campaign=' + C).then(function (s) {
       $('followers').textContent = s.followers;
       $('goal-now').textContent = s.goal;
-      $('state').textContent = s.closed ? 'Lukket.' : s.unlocked ? 'Åben for stemmer.' : 'Låst indtil ' + s.goal + ' følgere.';
+      $('state').textContent = !s.published ? 'Ikke udgivet.' : s.closed ? 'Lukket.' : s.unlocked ? 'Åben for stemmer.' : 'Låst indtil ' + s.goal + ' følgere.';
     }, function () {});
   }
+
+  // ---------- publish ----------
+
+  function renderPublish() {
+    if (!campaign) return;
+    var ready = songs.filter(function (s) { return s.title.trim() && s.snippet_url; }).length;
+    var ended = campaign.ends_at && Date.parse(campaign.ends_at) < Date.now();
+    var state = $('pub-state'), note = $('pub-note'), btn = $('pub-toggle');
+    $('publish').classList.toggle('is-live', campaign.published);
+    btn.disabled = false;
+    if (campaign.published) {
+      state.textContent = !campaign.open ? 'Udgivet · lukket for stemmer' : ended ? 'Udgivet · slut' : 'Udgivet · live';
+      note.textContent = 'Kan ses på 99luciano.dk/vote' + (campaign.open && !ended ? ', og knappen vises på forsiden.' : '.');
+      btn.textContent = 'Skjul';
+      btn.classList.remove('btn--solid');
+    } else {
+      state.textContent = 'Kladde · ikke udgivet';
+      note.textContent = ready
+        ? ready + (ready === 1 ? ' sang er klar' : ' sange er klar') + '. Ingen kan se afstemningen, før du udgiver den.'
+        : 'Tilføj mindst én sang med titel og klip, før du udgiver.';
+      btn.textContent = 'Udgiv';
+      btn.classList.add('btn--solid');
+      btn.disabled = !ready;
+    }
+  }
+
+  $('pub-toggle').addEventListener('click', function () {
+    var on = !campaign.published;
+    if (on && campaign.ends_at && Date.parse(campaign.ends_at) < Date.now() &&
+      !confirm('Slutdatoen er allerede passeret, så afstemningen vises som slut. Udgiv alligevel?')) return;
+    if (!on && !confirm('Skjul afstemningen? Siden viser "Afstemningen åbner snart", indtil du udgiver igen.')) return;
+    var btn = $('pub-toggle');
+    btn.disabled = true;
+    admin('POST', 'publish', { campaign: CAMPAIGN.id, published: on }).then(function (c) {
+      campaign = c;
+      renderPublish();
+      loadStatus();
+    }, function (e) { btn.disabled = false; $('pub-note').textContent = e.message; });
+  });
 
   // ---------- giveaway settings ----------
 
@@ -131,6 +90,7 @@
     $('s-prize').value = campaign.prize || '';
     $('s-artist').value = campaign.artist || '';
     $('s-ends').value = toLocalInput(campaign.ends_at);
+    $('s-draw').value = toLocalInput(campaign.draw_at);
     $('s-goal').value = campaign.goal;
     $('s-closed').checked = !campaign.open;
   }
@@ -146,11 +106,13 @@
       prize: $('s-prize').value.trim(),
       artist: $('s-artist').value.trim() || '99 LUCIANO',
       ends_at: $('s-ends').value ? new Date($('s-ends').value).toISOString() : null,
+      draw_at: $('s-draw').value ? new Date($('s-draw').value).toISOString() : null,
       goal: goal,
       open: !$('s-closed').checked
     }).then(function (c) {
       campaign = c;
       note.textContent = 'Gemt.';
+      renderPublish();
       loadStatus();
       renderSongs();
     }, function (e) { note.textContent = e.message; });
@@ -184,6 +146,7 @@
   }
 
   function renderSongs() {
+    renderPublish();
     var list = $('songs');
     list.innerHTML = '';
     songs.forEach(function (s, i) {
@@ -270,8 +233,15 @@
       down.addEventListener('click', function () { move(i, 1); });
 
       li.querySelector('.m-del').addEventListener('click', function () {
-        if (!confirm('Slet "' + (s.title || 'sang') + '"?')) return;
-        admin('DELETE', 'songs/' + s.id).then(loadSongs, function (e) { state.textContent = e.message; });
+        var name = s.title || 'sang';
+        if (!confirm(s.votes
+          ? 'Slet "' + name + '" og dens ' + s.votes + (s.votes === 1 ? ' stemme' : ' stemmer') + '? De, der stemte på den, kan stemme igen.'
+          : 'Slet "' + name + '"?')) return;
+        admin('DELETE', 'songs/' + s.id).then(function () {
+          loadSongs();
+          loadResults();
+          loadFlags();
+        }, function (e) { state.textContent = e.message; });
       });
 
       list.appendChild(li);
@@ -493,24 +463,6 @@
     });
   }
 
-  // Crops to a centred square and shrinks to size×size, so covers load fast on phones.
-  function squareJpeg(file, size) {
-    return new Promise(function (resolve, reject) {
-      var img = new Image();
-      img.onload = function () {
-        var side = Math.min(img.naturalWidth, img.naturalHeight);
-        var out = Math.min(size, side);
-        var c = document.createElement('canvas');
-        c.width = c.height = out;
-        c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, out, out);
-        URL.revokeObjectURL(img.src);
-        c.toBlob(function (b) { b ? resolve(b) : reject(new Error('Kunne ikke læse billedet.')); }, 'image/jpeg', 0.88);
-      };
-      img.onerror = function () { reject(new Error('Kunne ikke læse billedet.')); };
-      img.src = URL.createObjectURL(file);
-    });
-  }
-
   function move(i, dir) {
     var j = i + dir;
     if (j < 0 || j >= songs.length) return;
@@ -605,22 +557,42 @@
     }, function () {});
   }
 
-  var signups = [];
+  var signups = [], winnerSignups = [];
+  function signupRows(box, rows) {
+    box.innerHTML = '';
+    if (!rows.length) box.innerHTML = '<p class="step__note">Ingen endnu.</p>';
+    rows.forEach(function (r) {
+      var div = document.createElement('div');
+      div.className = 'signup';
+      div.innerHTML = '<span></span><span></span>';
+      div.firstChild.textContent = r.kind === 'sms' ? '+' + r.contact : r.contact;
+      div.lastChild.textContent = r.notified_at ? 'Sendt' : r.kind === 'sms' ? 'SMS' : 'Email';
+      box.appendChild(div);
+    });
+  }
+
   function loadSignups() {
     admin('GET', 'signups?campaign=' + C).then(function (rows) {
       signups = rows;
-      $('signup-count').textContent = signups.length + ' vil have besked';
-      $('signups').innerHTML = '';
-      signups.forEach(function (r) {
-        var div = document.createElement('div');
-        div.className = 'signup';
-        div.innerHTML = '<span></span><span></span>';
-        div.firstChild.textContent = r.kind === 'sms' ? '+' + r.contact : r.contact;
-        div.lastChild.textContent = r.notified_at ? 'Sendt' : r.kind === 'sms' ? 'SMS' : 'Email';
-        $('signups').appendChild(div);
-      });
+      $('signup-count').textContent = 'Besked når den åbner · ' + rows.length;
+      signupRows($('signups'), rows);
+    }, function () {});
+    admin('GET', 'winner-signups?campaign=' + C).then(function (rows) {
+      winnerSignups = rows;
+      $('winner-count').textContent = 'Besked om vinderen · ' + rows.length;
+      signupRows($('winner-signups'), rows);
     }, function () {});
   }
+
+  function signupCsv(rows) {
+    return ['type,kontakt,tilmeldt,sendt'].concat(rows.map(function (r) {
+      return [r.kind, r.kind === 'sms' ? '+' + r.contact : r.contact, r.created_at, r.notified_at || ''].join(',');
+    }));
+  }
+
+  $('export-winner').addEventListener('click', function () {
+    download(CAMPAIGN.id + '-besked-vinder.csv', signupCsv(winnerSignups));
+  });
 
   $('refresh').addEventListener('click', function () { loadResults(); loadFlags(); loadSignups(); loadStatus(); loadSongs(); });
 
@@ -633,9 +605,7 @@
   });
 
   $('export-signups').addEventListener('click', function () {
-    download(CAMPAIGN.id + '-besked.csv', ['type,kontakt,tilmeldt,sendt'].concat(signups.map(function (r) {
-      return [r.kind, r.kind === 'sms' ? '+' + r.contact : r.contact, r.created_at, r.notified_at || ''].join(',');
-    })));
+    download(CAMPAIGN.id + '-besked.csv', signupCsv(signups));
   });
 
   // ---------- winner ----------
@@ -695,5 +665,5 @@
     }, function (e) { $('winner-note').textContent = e.message; });
   });
 
-  init();
+  Admin.start(loadAll);
 })();
