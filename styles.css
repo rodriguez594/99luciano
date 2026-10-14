@@ -480,3 +480,32 @@ em, i { font-style: normal; }
 @media (max-width: 480px) {
   .step__body { padding-left: 0; }
 }
+
+/* Preview mode bar (campaigns/demo.js) */
+.demo-bar {
+  position: fixed;
+  top: 86px;
+  right: var(--gutter);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.85);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+.demo-bar b { padding: 0 6px; color: var(--muted); }
+.demo-bar button {
+  padding: 7px 9px;
+  border: 0;
+  background: none;
+  color: var(--soft);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.demo-bar button.is-on { background: var(--text); color: var(--bg); }

@@ -25,6 +25,14 @@ document.documentElement.classList.add('js');
     onScroll();
   }
 
+  // Served as /path/file.html (a preview host with no folder index): point folder links at their index.html
+  if (/\.html$/.test(location.pathname)) {
+    document.querySelectorAll('a[href]').forEach(function (a) {
+      var h = a.getAttribute('href');
+      if (!/^[a-z]+:|^\/\/|^#/.test(h) && /\/$/.test(h)) a.setAttribute('href', h + 'index.html');
+    });
+  }
+
   var year = document.getElementById('year');
   if (year) year.textContent = new Date().getFullYear();
 })();
