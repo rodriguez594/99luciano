@@ -19,15 +19,18 @@ The repo is public (needed for free GitHub Pages). Songs, covers and snippets ar
 2. **Open** once the goal is reached. It stays open even if followers drop again. People follow, enter their username, tap a cover to hear the snippet, and vote.
 3. When it ends, check followers and draw the winner at /management.
 
-### One vote per person
+### Flagging instead of blocking
 
-Three checks, all enforced by the database:
+Nobody is turned away. Every username that votes is in (the same username twice is still one vote). But each vote stores two things, so you can spot one person using several usernames:
 
-- **Instagram username:** each username can vote once.
-- **Device:** the browser gets a random id, kept in both a cookie and local storage, and the server allows one vote per id. Clearing one of them isn't enough, and the page keeps showing "du er med" after a vote.
-- **Network (IP):** at most 3 votes from the same IP. Families on one wifi and mobile carriers share IPs, so 1 would block real people. Change the number at /management.
+- **Device:** the browser gets a random id, kept in both a cookie and local storage.
+- **Network:** a hash of the IP address (the IP itself isn't stored).
 
-Someone determined can still get around this, for example with several phones on mobile data. That's why the winner is only drawn among votes from real followers (see below).
+Votes that share a device or a network are **flagged** and grouped at /management → Flag. A group counts as **one entry** in the draw, however many usernames are in it. Those people are still in the giveaway, just with one entry together. The vote counts per song show both all votes and people.
+
+Same network can be a family on the same wifi or a mobile carrier, so look the groups over yourself. If someone in a group is clearly a different person, press "Egen person" and they get their own entry ("Fortryd" puts them back).
+
+The winner is only drawn among votes from real followers (see below), and the draw tells you if the winner was flagged with anyone.
 
 ## Setup
 
@@ -82,9 +85,9 @@ One-time setup: repo Settings → Pages → Source: **GitHub Actions**.
 
 ## Running a giveaway (at /management)
 
-- **Giveaway:** prize, artist name, end date, follower goal, votes per network, and "Luk for stemmer nu".
+- **Giveaway:** prize, artist name, end date, follower goal, and "Luk for stemmer nu".
 - **Sange:** add songs, set title and artist (empty = the giveaway's artist), upload a cover (cropped to a square and shrunk automatically) and a snippet (MP3, max 15 MB), reorder with the arrows. A song shows up on the page once it has a title and a snippet. A song that has votes can't be deleted.
-- **Stemmer / Besked:** votes per song and the notification sign-ups, both downloadable as CSV.
+- **Stemmer / Flag / Besked:** votes per song, flagged groups to review, and the notification sign-ups. Votes and sign-ups can be downloaded as CSV.
 - **Vinder:** check followers and draw the winner.
 
 For the next giveaway, change `CAMPAIGN.id` in `campaigns/config.js` to a new id. The giveaway is created the first time you open /management, and votes, sign-ups and songs start from zero.
@@ -95,7 +98,7 @@ Instagram's API gives the follower count but not who follows, so the check uses 
 
 1. When the giveaway ends, go to Instagram → Settings → Accounts Centre → Your information and permissions → Download your information → Followers and following, format JSON.
 2. At /management → Vinder, upload `followers_1.json`. Every vote is marked as following or not.
-3. Press "Træk". It picks a random vote from people who follow.
+3. Press "Træk". It picks a random entry among people who follow, where each flagged group is one entry.
 
 ## Run locally
 

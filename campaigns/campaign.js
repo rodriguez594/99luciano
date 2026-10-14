@@ -53,7 +53,7 @@
       (location.protocol === 'https:' ? '; Secure' : '');
   }
 
-  // A random id for this browser. The server allows one vote per id.
+  // A random id for this browser, so /management can flag several usernames from one device.
   function deviceId() {
     var ok = function (v) { return /^[a-f0-9]{32}$/.test(v || '') ? v : null; };
     var id = ok(getCookie('luciano_device'));
@@ -176,7 +176,6 @@
 
   var NOTIFY_ERRORS = {
     bad_contact: 'Skriv en email eller et telefonnummer.',
-    too_many: 'For mange tilmeldinger fra dette netværk.',
     open: 'Giveawayen er allerede åben. Stem herunder.'
   };
 
@@ -389,9 +388,7 @@
     bad_handle: 'Det ligner ikke et Instagram-brugernavn.',
     bad_song: 'Vælg et af numrene.',
     closed: 'Giveawayen er lukket.',
-    locked: 'Giveawayen er ikke åben endnu.',
-    device: 'Der er allerede stemt fra denne enhed. Én stemme per person.',
-    too_many: 'Der er allerede stemt for mange gange fra dette netværk.'
+    locked: 'Giveawayen er ikke åben endnu.'
   };
 
   function showMsg(text) {

@@ -103,6 +103,7 @@
       loadSongs();
       loadStatus();
       loadResults();
+      loadFlags();
       loadSignups();
     });
   }
@@ -145,7 +146,6 @@
     $('s-artist').value = campaign.artist || '';
     $('s-ends').value = toLocalInput(campaign.ends_at);
     $('s-goal').value = campaign.goal;
-    $('s-max-ip').value = campaign.max_per_ip;
     $('s-closed').checked = !campaign.open;
   }
 
@@ -153,15 +153,12 @@
     e.preventDefault();
     var note = $('settings-note');
     var goal = parseInt($('s-goal').value, 10);
-    var maxIp = parseInt($('s-max-ip').value, 10);
     if (!(goal >= 0)) { note.textContent = 'Skriv et antal følgere.'; return; }
-    if (!(maxIp >= 1)) { note.textContent = 'Stemmer per netværk skal være mindst 1.'; return; }
     var patch = {
       prize: $('s-prize').value.trim(),
       artist: $('s-artist').value.trim() || '99 LUCIANO',
       ends_at: $('s-ends').value ? new Date($('s-ends').value).toISOString() : null,
       goal: goal,
-      max_per_ip: maxIp,
       open: !$('s-closed').checked
     };
     note.textContent = 'Gemmer…';
@@ -365,11 +362,13 @@
       var rows = res.data, total = 0, verified = 0, max = 1;
       rows.forEach(function (r) { total += r.votes; verified += r.verified; max = Math.max(max, r.votes); });
       $('totals').textContent = total + ' stemmer · ' + verified + ' følger';
+      rows.forEach(function (r) { r.dupes = r.votes - r.people; });
       $('results').innerHTML = '';
       rows.slice().sort(function (a, b) { return b.votes - a.votes; }).forEach(function (r) {
         var div = document.createElement('div');
         div.className = 'result';
-        div.innerHTML = '<h3></h3><span>' + r.votes + ' stemmer<br>' + r.verified + ' følger</span><i></i>';
+        div.innerHTML = '<h3></h3><span>' + r.votes + ' stemmer' + (r.dupes ? ' (' + r.people + ' personer)' : '') +
+          '<br>' + r.verified + ' følger</span><i></i>';
         div.querySelector('h3').textContent = r.title || 'Uden titel';
         div.querySelector('i').style.transform = 'scaleX(' + r.votes / max + ')';
         $('results').appendChild(div);
@@ -395,13 +394,67 @@
     });
   }
 
-  $('refresh').addEventListener('click', function () { loadResults(); loadSignups(); loadStatus(); });
+  // Votes that share a device or a network, grouped. Each group is one entry in the draw.
+  function loadFlags() {
+    sb.rpc('luciano_flags', { p_campaign: CAMPAIGN.id }).then(function (res) {
+      if (res.error) return;
+      var groups = [];
+      res.data.forEach(function (r) {
+        var g = groups[groups.length - 1];
+        if (!g || g.id !== r.grp) groups.push(g = { id: r.grp, rows: [] });
+        g.rows.push(r);
+      });
+      var flagged = groups.filter(function (g) { return g.rows.length > 1; }).length;
+      $('flag-count').textContent = flagged ? 'Flaget · ' + flagged + (flagged === 1 ? ' gruppe' : ' grupper') : 'Flaget · ingen';
+      var box = $('flags');
+      box.innerHTML = '';
+      if (!res.data.length) {
+        box.innerHTML = '<p class="step__note">Intet at vise endnu.</p>';
+        return;
+      }
+      groups.forEach(function (g) {
+        var div = document.createElement('div');
+        div.className = 'm-flag' + (g.rows.length > 1 ? '' : ' is-cleared');
+        var head = document.createElement('p');
+        head.className = 'm-flag__head';
+        var why = [];
+        if (g.rows.some(function (r) { return r.same_device; })) why.push('samme enhed');
+        if (g.rows.some(function (r) { return r.same_network; })) why.push('samme netværk');
+        head.textContent = g.rows.length > 1
+          ? g.rows.length + ' brugernavne · ' + why.join(' + ') + ' · tæller som 1 lod'
+          : 'Egen person (godkendt af dig)';
+        div.appendChild(head);
+        g.rows.forEach(function (r) {
+          var row = document.createElement('div');
+          row.className = 'm-flag__row';
+          row.innerHTML = '<span class="m-flag__who"><b></b><small></small></span><button type="button" class="m-mini"></button>';
+          row.querySelector('b').textContent = '@' + r.handle;
+          row.querySelector('small').textContent = r.title + ' · ' + new Date(r.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) +
+            (r.verified ? ' · følger' : '') + (r.same_device ? ' · enhed' : '') + (r.same_network ? ' · netværk' : '');
+          var btn = row.querySelector('button');
+          btn.textContent = r.cleared ? 'Fortryd' : 'Egen person';
+          btn.addEventListener('click', function () {
+            btn.disabled = true;
+            sb.rpc('luciano_set_cleared', { p_vote: r.vote_id, p_cleared: !r.cleared }).then(function (x) {
+              if (x.error) { btn.disabled = false; return alert(err(x.error)); }
+              loadFlags();
+              loadResults();
+            });
+          });
+          div.appendChild(row);
+        });
+        box.appendChild(div);
+      });
+    });
+  }
+
+  $('refresh').addEventListener('click', function () { loadResults(); loadFlags(); loadSignups(); loadStatus(); });
 
   $('export').addEventListener('click', function () {
     sb.rpc('luciano_entries', { p_campaign: CAMPAIGN.id }).then(function (res) {
       if (res.error) return;
-      download(CAMPAIGN.id + '-stemmer.csv', ['brugernavn,nummer,foelger,tidspunkt'].concat(res.data.map(function (r) {
-        return [r.handle, '"' + (r.title || '').replace(/"/g, '""') + '"', r.verified ? 'ja' : 'nej', r.created_at].join(',');
+      download(CAMPAIGN.id + '-stemmer.csv', ['brugernavn,nummer,foelger,flaget,gruppe,tidspunkt'].concat(res.data.map(function (r) {
+        return [r.handle, '"' + (r.title || '').replace(/"/g, '""') + '"', r.verified ? 'ja' : 'nej', r.flagged ? 'ja' : 'nej', r.grp, r.created_at].join(',');
       })));
     });
   });
@@ -462,7 +515,9 @@
       }
       var w = res.data[0];
       $('winner').textContent = '@' + w.handle;
-      $('winner-note').textContent = 'Ud af ' + w.pool + ' stemmer · stemte på ' + w.title + ' · ' + new Date(w.created_at).toLocaleString('da-DK');
+      var others = (w.group_handles || []).filter(function (h) { return h !== w.handle; });
+      $('winner-note').textContent = 'Ud af ' + w.pool + ' lod · stemte på ' + w.title + ' · ' + new Date(w.created_at).toLocaleString('da-DK') +
+        (others.length ? ' · Flaget sammen med @' + others.join(', @') + '. Tjek dem under Flag.' : '');
     });
   });
 

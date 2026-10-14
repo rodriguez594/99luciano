@@ -15,10 +15,9 @@ create table if not exists public.luciano_campaigns (
   ends_at     timestamptz,
   open        boolean not null default true,      -- false closes voting right away
   goal        int not null default 150,           -- Instagram followers needed before voting opens
-  max_per_ip  int not null default 3,             -- votes allowed from one network (household wifi, mobile carriers share IPs)
   unlocked_at timestamptz                         -- set the first time the goal is reached; stays open after that
 );
-alter table public.luciano_campaigns add column if not exists max_per_ip int not null default 3;
+alter table public.luciano_campaigns drop column if exists max_per_ip;
 
 create table if not exists public.luciano_songs (
   id          uuid primary key default gen_random_uuid(),
@@ -39,14 +38,16 @@ create table if not exists public.luciano_votes (
   song       uuid not null references public.luciano_songs (id), -- a song with votes can't be deleted
   ip_hash    text,
   device     text,                   -- hash of the random id the voter's browser keeps (cookie + storage)
+  cleared    boolean not null default false,  -- you looked at a flag and decided this is its own person
   verified   boolean not null default false,  -- true = found in the follower list
   created_at timestamptz not null default now(),
   unique (campaign, handle)
 );
 alter table public.luciano_votes add column if not exists device text;
+alter table public.luciano_votes add column if not exists cleared boolean not null default false;
 create index if not exists luciano_votes_ip on public.luciano_votes (campaign, ip_hash);
--- One vote per device
-create unique index if not exists luciano_votes_device on public.luciano_votes (campaign, device) where device is not null;
+drop index if exists public.luciano_votes_device;
+create index if not exists luciano_votes_dev on public.luciano_votes (campaign, device);
 
 -- People who want a message when the giveaway opens.
 create table if not exists public.luciano_notify (
@@ -202,10 +203,10 @@ as $$
   where c.id = p_campaign and i.id = 1;
 $$;
 
--- Three checks stop one person voting many times: one vote per Instagram username,
--- one per device (p_device, a random id the browser keeps in a cookie and in storage),
--- and at most max_per_ip votes per network.
--- Returns 'ok', 'already', 'device', 'locked', 'closed', 'bad_handle', 'bad_song' or 'too_many'.
+-- Nothing is blocked: every username gets in (the same username twice is still one vote).
+-- The device id (p_device, a random id the browser keeps in a cookie and in storage) and
+-- the network are stored so /management can flag votes that look like the same person.
+-- Returns 'ok', 'already', 'locked', 'closed', 'bad_handle' or 'bad_song'.
 drop function if exists public.luciano_vote(text, text, text);
 create or replace function public.luciano_vote(p_campaign text, p_handle text, p_song text, p_device text default null)
 returns text
@@ -243,38 +244,20 @@ begin
     return 'bad_song';
   end if;
 
-  -- Same username again: they're already in, nothing changes.
-  if exists (select 1 from luciano_votes where campaign = c.id and handle = h) then
-    return 'already';
-  end if;
-
-  -- This device already voted (under another username).
-  if coalesce(p_device, '') !~ '^[a-f0-9]{32}$' then
-    return 'device';               -- the page always sends one; a missing id means a script
-  end if;
-  dev := md5(c.id || ':' || p_device);
-  if exists (select 1 from luciano_votes where campaign = c.id and device = dev) then
-    return 'device';
-  end if;
-
-  -- Too many votes from this network.
-  if ip is not null then
-    select count(*) into n from luciano_votes where campaign = c.id and ip_hash = ip;
-    if n >= c.max_per_ip then
-      return 'too_many';
-    end if;
+  if coalesce(p_device, '') ~ '^[a-f0-9]{32}$' then
+    dev := md5(c.id || ':' || p_device);
   end if;
 
   insert into luciano_votes (campaign, handle, song, ip_hash, device)
   values (c.id, h, song_id, ip, dev)
-  on conflict do nothing;
+  on conflict (campaign, handle) do nothing;
   get diagnostics n = row_count;
   return case when n = 1 then 'ok' else 'already' end;
 end;
 $$;
 
 -- Sign up for a message when the giveaway opens. Takes an email or a phone number
--- (8 digits are read as Danish). Returns 'ok', 'already', 'open', 'bad_contact' or 'too_many'.
+-- (8 digits are read as Danish). Returns 'ok', 'already', 'open' or 'bad_contact'.
 create or replace function public.luciano_notify_me(p_campaign text, p_contact text)
 returns text
 language plpgsql
@@ -300,11 +283,6 @@ begin
     if v ~ '^[0-9]{8}$' then v := '45' || v; end if;
     if v !~ '^[1-9][0-9]{7,14}$' then return 'bad_contact'; end if;
     kind := 'sms';
-  end if;
-
-  if ip is not null then
-    select count(*) into n from luciano_notify where campaign = c.id and ip_hash = ip;
-    if n >= 8 then return 'too_many'; end if;
   end if;
 
   insert into luciano_notify (campaign, kind, contact, ip_hash)
@@ -373,8 +351,37 @@ $$;
 
 -- Admin functions (used by /management; the caller must be in luciano_admins) ---
 
+-- Groups votes that look like the same person: votes that share a device or a network
+-- (directly or through each other) end up in one group. Each group is one entry in the draw.
+-- Votes you've cleared at /management always count as their own group.
+create or replace function public.luciano_groups(p_campaign text)
+returns table (vote_id bigint, grp bigint)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with recursive v as (
+    select id, device, ip_hash, cleared from luciano_votes where campaign = p_campaign
+  ),
+  edges as (
+    select a.id as a, b.id as b
+    from v a join v b on a.id <> b.id
+    where not a.cleared and not b.cleared
+      and ((a.device is not null and a.device = b.device) or (a.ip_hash is not null and a.ip_hash = b.ip_hash))
+  ),
+  reach (id, root) as (
+    select id, id from v
+    union
+    select e.b, r.root from reach r join edges e on e.a = r.id
+  )
+  select id, min(root) from reach group by id;
+$$;
+
+-- votes = all votes, verified = from followers, people = distinct groups (flagged duplicates count once)
+drop function if exists public.luciano_results(text);
 create or replace function public.luciano_results(p_campaign text)
-returns table (song uuid, title text, votes bigint, verified bigint)
+returns table (song uuid, title text, votes bigint, verified bigint, people bigint)
 language plpgsql
 security definer
 set search_path = public
@@ -382,12 +389,55 @@ as $$
 begin
   perform luciano_require_admin();
   return query
-    select s.id, s.title, count(v.id), count(v.id) filter (where v.verified)
+    select s.id, s.title, count(v.id), count(v.id) filter (where v.verified), count(distinct g.grp)
     from luciano_songs s
     left join luciano_votes v on v.song = s.id
+    left join luciano_groups(p_campaign) g on g.vote_id = v.id
     where s.campaign = p_campaign
     group by s.id
     order by s.position, s.created_at;
+end;
+$$;
+
+-- Every vote that shares a device or a network with another vote, grouped, so you can look
+-- them over. same_device / same_network say why (ignoring whether you cleared it).
+create or replace function public.luciano_flags(p_campaign text)
+returns table (vote_id bigint, grp bigint, handle text, title text, verified boolean, cleared boolean,
+               same_device boolean, same_network boolean, created_at timestamptz)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform luciano_require_admin();
+  return query
+    with v as (select * from luciano_votes x where x.campaign = p_campaign),
+    f as (
+      select v.id,
+        exists (select 1 from v o where o.id <> v.id and v.device is not null and o.device = v.device) as dev,
+        exists (select 1 from v o where o.id <> v.id and v.ip_hash is not null and o.ip_hash = v.ip_hash) as net
+      from v
+    )
+    select v.id, g.grp, v.handle, s.title, v.verified, v.cleared, f.dev, f.net, v.created_at
+    from v
+    join f on f.id = v.id
+    join luciano_groups(p_campaign) g on g.vote_id = v.id
+    join luciano_songs s on s.id = v.song
+    where f.dev or f.net
+    order by g.grp, v.created_at;
+end;
+$$;
+
+-- Mark a flagged vote as its own person (true) or put it back in its group (false).
+create or replace function public.luciano_set_cleared(p_vote bigint, p_cleared boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform luciano_require_admin();
+  update luciano_votes set cleared = p_cleared where id = p_vote;
 end;
 $$;
 
@@ -411,8 +461,11 @@ begin
 end;
 $$;
 
+-- Draws among people, not votes: each group of flagged votes is one entry. Only votes from
+-- followers count. Returns the winning vote plus every username in its group.
+drop function if exists public.luciano_draw(text);
 create or replace function public.luciano_draw(p_campaign text)
-returns table (handle text, title text, created_at timestamptz, pool bigint)
+returns table (handle text, title text, created_at timestamptz, pool bigint, group_handles text[])
 language plpgsql
 security definer
 set search_path = public
@@ -420,17 +473,27 @@ as $$
 begin
   perform luciano_require_admin();
   return query
-    select v.handle, s.title, v.created_at, count(*) over ()
-    from luciano_votes v
-    join luciano_songs s on s.id = v.song
-    where v.campaign = p_campaign and v.verified
+    with g as materialized (
+      select gg.vote_id, gg.grp, v.handle, v.song, v.verified, v.created_at
+      from luciano_groups(p_campaign) gg join luciano_votes v on v.id = gg.vote_id
+    ),
+    pick as materialized (
+      select x.grp from (select distinct g.grp from g where g.verified) x order by random() limit 1
+    )
+    select g.handle, s.title, g.created_at,
+      (select count(distinct g2.grp) from g g2 where g2.verified),
+      (select array_agg(g3.handle order by g3.created_at) from g g3 where g3.grp = (select grp from pick))
+    from g
+    join luciano_songs s on s.id = g.song
+    where g.grp = (select grp from pick) and g.verified
     order by random()
     limit 1;
 end;
 $$;
 
+drop function if exists public.luciano_entries(text);
 create or replace function public.luciano_entries(p_campaign text)
-returns table (handle text, title text, verified boolean, created_at timestamptz)
+returns table (handle text, title text, verified boolean, flagged boolean, grp bigint, created_at timestamptz)
 language plpgsql
 security definer
 set search_path = public
@@ -438,9 +501,12 @@ as $$
 begin
   perform luciano_require_admin();
   return query
-    select v.handle, s.title, v.verified, v.created_at
+    select v.handle, s.title, v.verified,
+      (select count(*) from luciano_groups(p_campaign) g2 where g2.grp = g.grp) > 1,
+      g.grp, v.created_at
     from luciano_votes v
     join luciano_songs s on s.id = v.song
+    join luciano_groups(p_campaign) g on g.vote_id = v.id
     where v.campaign = p_campaign
     order by v.id;
 end;
@@ -502,7 +568,10 @@ revoke execute on function
   public.luciano_save_token(text),
   public.luciano_claim_notifications(text[], int),
   public.luciano_unclaim_notification(bigint),
+  public.luciano_groups(text),
   public.luciano_results(text),
+  public.luciano_flags(text),
+  public.luciano_set_cleared(bigint, boolean),
   public.luciano_verify(text, text[]),
   public.luciano_draw(text),
   public.luciano_entries(text),
@@ -520,6 +589,8 @@ to anon, authenticated;
 grant execute on function
   public.luciano_is_admin(),
   public.luciano_results(text),
+  public.luciano_flags(text),
+  public.luciano_set_cleared(bigint, boolean),
   public.luciano_verify(text, text[]),
   public.luciano_draw(text),
   public.luciano_entries(text),

@@ -136,3 +136,14 @@
 }
 .m textarea:focus { outline: none; border-color: var(--text); }
 #winner { font-size: clamp(2rem, 9vw, 3.4rem); font-weight: 800; line-height: 1.05; margin: 28px 0 8px; overflow-wrap: anywhere; }
+
+/* Flagged groups */
+.m-flag { padding: 16px 0; border-top: 1px solid var(--line); }
+.m-flag:last-child { border-bottom: 1px solid var(--line); }
+.m-flag__head { margin: 0 0 8px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.16em; color: var(--text); }
+.m-flag.is-cleared .m-flag__head { color: var(--muted); }
+.m-flag__row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0 8px 12px; border-left: 2px solid var(--line); }
+.m-flag__who { display: grid; min-width: 0; }
+.m-flag__who b { font-size: 0.85rem; text-transform: none; overflow-wrap: anywhere; }
+.m-flag__who small { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
+.m-flag__row .m-mini { flex: none; }

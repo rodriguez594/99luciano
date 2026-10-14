@@ -45,7 +45,7 @@
 
     <div id="panel" hidden>
       <nav class="m-tabs" aria-label="Sektioner">
-        <a href="#giveaway">Giveaway</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#besked">Besked</a><a href="#vinder">Vinder</a>
+        <a href="#giveaway">Giveaway</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#flag">Flag</a><a href="#besked">Besked</a><a href="#vinder">Vinder</a>
       </nav>
 
       <!-- Giveaway settings -->
@@ -59,7 +59,6 @@
           <label class="m-field"><span>Kunstner (vises under numrene)</span><input id="s-artist" type="text" maxlength="60"></label>
           <label class="m-field"><span>Slutter</span><input id="s-ends" type="datetime-local"></label>
           <label class="m-field"><span>Følgere før den åbner</span><input id="s-goal" type="number" inputmode="numeric" min="0" step="1"></label>
-          <label class="m-field"><span>Stemmer per netværk (wifi / IP)</span><input id="s-max-ip" type="number" inputmode="numeric" min="1" step="1"></label>
           <label class="m-check"><input id="s-closed" type="checkbox"> <span>Luk for stemmer nu</span></label>
           <button class="btn btn--solid" id="save-settings">Gem</button>
           <p class="step__note" id="settings-note" aria-live="polite"></p>
@@ -91,6 +90,15 @@
           <button class="btn" id="refresh">Opdater</button>
           <button class="btn" id="export">Hent stemmer (CSV)</button>
         </div>
+      </section>
+
+      <!-- Flagged votes -->
+      <section class="m-sec" id="flag">
+        <p class="label" id="flag-count">Flaget</p>
+        <p class="step__note">Stemmer fra samme enhed eller samme netværk bliver samlet i en gruppe, der tæller som ét lod.
+          Ingen bliver afvist. Samme netværk kan være en familie på samme wifi eller et mobilnet, så kig selv efter:
+          er det en anden person, tryk "Egen person", så får de deres eget lod.</p>
+        <div id="flags"></div>
       </section>
 
       <!-- Notification sign-ups -->
