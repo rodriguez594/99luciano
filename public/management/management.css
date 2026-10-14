@@ -442,3 +442,14 @@ a.m-card:hover { border-color: var(--text); }
 .m-story { border-left-color: var(--soft); }
 .m-story.is-ok { border-left-color: var(--text); }
 #story .m-new { margin: 18px 0 6px; }
+
+/* Who voted for what */
+.result.is-link { cursor: pointer; }
+.result.is-link:hover h3 { text-decoration: underline; }
+#voters-search { margin: 6px 0 4px; text-transform: none; }
+#voters-songs { flex-wrap: wrap; margin: 12px 0 16px; }
+.m-voter { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.m-voter a { font-size: 0.88rem; font-weight: 800; text-transform: none; overflow-wrap: anywhere; }
+.m-voter a:hover { text-decoration: underline; }
+.m-voter__song { font-size: 0.72rem; font-weight: 800; text-align: right; }
+.m-voter small { grid-column: 1 / -1; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); }

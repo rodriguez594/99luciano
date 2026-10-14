@@ -502,10 +502,76 @@
           '<br>' + r.verified + ' følger</span><i></i>';
         div.querySelector('h3').textContent = r.title || 'Uden titel';
         div.querySelector('i').style.transform = 'scaleX(' + r.votes / max + ')';
+        // Tap a song to see who voted for it
+        div.classList.add('is-link');
+        div.title = 'Se hvem der stemte på ' + (r.title || 'sangen');
+        div.addEventListener('click', function () {
+          voterSong = r.title || '';
+          renderVoters();
+          $('voters-count').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
         $('results').appendChild(div);
       });
     }, function () {});
+    loadVoters();
   }
+
+  // ---------- who voted for what ----------
+
+  var voters = [], voterSong = null, voterLimit = 100;
+  function loadVoters() {
+    admin('GET', 'entries?campaign=' + C).then(function (rows) {
+      voters = rows.slice().reverse(); // newest first
+      renderVoters();
+    }, function () {});
+  }
+
+  function renderVoters() {
+    var q = $('voters-search').value.trim().toLowerCase().replace(/^@/, '');
+    var titles = [];
+    voters.forEach(function (v) { if (titles.indexOf(v.title) < 0) titles.push(v.title); });
+    if (voterSong !== null && titles.indexOf(voterSong) < 0) voterSong = null;
+
+    var chips = $('voters-songs');
+    chips.innerHTML = '';
+    [null].concat(titles).forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'm-chip' + (t === voterSong ? ' is-on' : '');
+      var n = voters.filter(function (v) { return t === null || v.title === t; }).length;
+      b.textContent = (t === null ? 'Alle' : t || 'Uden titel') + ' · ' + n;
+      b.addEventListener('click', function () { voterSong = t; voterLimit = 100; renderVoters(); });
+      chips.appendChild(b);
+    });
+
+    var list = voters.filter(function (v) {
+      return (voterSong === null || v.title === voterSong) && (!q || v.handle.indexOf(q) >= 0);
+    });
+    $('voters-count').textContent = 'Alle stemmer · ' + (list.length === voters.length ? voters.length : list.length + ' af ' + voters.length);
+    var box = $('voters');
+    box.innerHTML = '';
+    if (!list.length) box.innerHTML = '<p class="step__note">' + (voters.length ? 'Ingen matcher.' : 'Ingen stemmer endnu.') + '</p>';
+    list.slice(0, voterLimit).forEach(function (v) {
+      var row = document.createElement('div');
+      row.className = 'm-voter';
+      row.innerHTML = '<a target="_blank" rel="noopener"></a><span class="m-voter__song"></span><small></small>';
+      var a = row.querySelector('a');
+      a.textContent = '@' + v.handle;
+      a.href = 'https://instagram.com/' + encodeURIComponent(v.handle);
+      row.querySelector('.m-voter__song').textContent = v.title || 'Uden titel';
+      row.querySelector('small').textContent = [
+        new Date(v.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        v.verified ? 'følger' : '',
+        v.story ? 'story ✓' : v.story_claimed ? 'story venter' : '',
+        v.flagged ? 'flaget' : ''
+      ].filter(Boolean).join(' · ');
+      box.appendChild(row);
+    });
+    $('voters-more').hidden = list.length <= voterLimit;
+  }
+
+  $('voters-search').addEventListener('input', function () { voterLimit = 100; renderVoters(); });
+  $('voters-more').addEventListener('click', function () { voterLimit += 200; renderVoters(); });
 
   // ---------- stories (double chance) ----------
 

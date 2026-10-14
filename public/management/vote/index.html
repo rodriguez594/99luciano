@@ -90,6 +90,14 @@
       <section class="m-sec" id="stemmer">
         <p class="label" id="totals">Stemmer</p>
         <div id="results" class="m-list"></div>
+
+        <!-- Who voted for what -->
+        <p class="label" id="voters-count" style="margin-top:44px">Alle stemmer</p>
+        <input class="m-in" id="voters-search" type="search" placeholder="Søg brugernavn" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Søg brugernavn">
+        <div class="m-view" id="voters-songs" role="group" aria-label="Vis stemmer på"></div>
+        <div id="voters" class="m-list m-voters"></div>
+        <button type="button" class="m-mini" id="voters-more" hidden style="margin-top:14px">Vis flere</button>
+
         <div class="actions">
           <button class="btn" id="refresh">Opdater</button>
           <button class="btn" id="export">Hent stemmer (CSV)</button>
