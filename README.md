@@ -7,7 +7,7 @@ Artist site for 99 LUCIANO, part of 99 (with 99MGMT, 99ENT and 99WRLDWIDE). In D
 This one runs on **Cloudflare Pages**:
 
 - `public/`: the website
-  - `index.html`: the front page of 99luciano.dk, which is the giveaway (vote for the next single). `/campaigns` redirects here
+  - `index.html`: the front page of 99luciano.dk. While a giveaway runs it's the giveaway (vote for the next single); when it's closed or past its end time it's a portfolio with app icons for the socials (`SOCIALS` in `giveaway/config.js`; add the Spotify link there when it exists). `/campaigns` redirects here
   - `giveaway/`: its scripts; `giveaway/config.js` says which giveaway is shown
   - `management/`: 99luciano.dk/management, where you edit the giveaway and songs, see votes and draw the winner
 - `functions/`: the server code (Cloudflare Pages Functions), `/api/...` and `/files/...`

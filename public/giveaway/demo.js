@@ -19,8 +19,9 @@
     };
   }
 
-  var open = !/[?&]locked\b/.test(location.search);
-  try { open = open && sessionStorage.getItem('luciano:demo-open') !== '0'; } catch (e) {}
+  var mode = /[?&]locked\b/.test(location.search) ? '0' : '1';   // 0 locked, 1 open, 2 ended (portfolio)
+  try { mode = sessionStorage.getItem('luciano:demo-open') || mode; } catch (e) {}
+  var open = mode !== '0';
   var followers = 87;
   var songs = [
     { id: 'demo-1', title: 'Natlys', artist: '99 LUCIANO', cover: 'giveaway/demo/cover-1.jpg', file: 'giveaway/demo/snippet-1.wav', length: 15 },
@@ -37,7 +38,7 @@
       followers: open ? 162 : followers,
       goal: 150,
       unlocked: open,
-      closed: false,
+      closed: mode === '2',
       songs: songs
     });
   };
@@ -71,8 +72,8 @@
     } catch (e) {}
   }
 
-  function setOpen(v) {
-    try { sessionStorage.setItem('luciano:demo-open', v ? '1' : '0'); } catch (e) {}
+  function setMode(v) {
+    try { sessionStorage.setItem('luciano:demo-open', v); } catch (e) {}
     reset();
     location.reload();
   }
@@ -80,13 +81,13 @@
   function addBar() {
     var bar = document.createElement('div');
     bar.className = 'demo-bar';
-    bar.innerHTML = '<b>Demo</b><button type="button" data-v="0">Låst</button><button type="button" data-v="1">Åben</button><button type="button" data-reset>Forfra</button>';
-    bar.querySelector('[data-v="' + (open ? 1 : 0) + '"]').classList.add('is-on');
+    bar.innerHTML = '<b>Demo</b><button type="button" data-v="0">Låst</button><button type="button" data-v="1">Åben</button><button type="button" data-v="2">Slut</button><button type="button" data-reset>Forfra</button>';
+    bar.querySelector('[data-v="' + mode + '"]').classList.add('is-on');
     bar.addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b) return;
       if (b.hasAttribute('data-reset')) { reset(); location.reload(); }
-      else setOpen(b.getAttribute('data-v') === '1');
+      else setMode(b.getAttribute('data-v'));
     });
     document.body.appendChild(bar);
   }

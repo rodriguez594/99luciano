@@ -26,7 +26,7 @@
   </header>
 
   <main class="vote">
-    <div id="intro">
+    <div id="intro" hidden>
       <p class="label reveal" id="intro-label">Giveaway</p>
       <h1 class="display reveal">Stem på min næste single.</h1>
       <p class="vote__intro reveal">Hør klippene og vælg den, der skal udkomme. Alle, der stemmer, er med i lodtrækningen om præmien.</p>
@@ -151,19 +151,19 @@
     </div>
 
     <!-- Closed -->
-    <div id="closed" hidden>
-      <p class="label">Lukket</p>
-      <h1 class="display">Giveawayen er slut.</h1>
-      <p class="vote__intro">Tak til alle, der stemte. Følg med på Instagram for vinderen og udgivelsen.</p>
-      <a class="btn btn--solid ig-link" style="margin-top:40px" target="_blank" rel="noopener"><span class="ig-handle"></span></a>
-    </div>
+    <!-- Portfolio: shown whenever no giveaway is running -->
+    <section class="folio" id="closed" hidden>
+      <img class="folio__mark" src="assets/mark.png" alt="99" width="959" height="882">
+      <h1 class="folio__word">LUCIANO</h1>
+      <nav class="apps" aria-label="Find mig her"></nav>
+    </section>
   </main>
 
   <footer class="footer">
     <img src="assets/mark-160.png" alt="" width="33" height="30">
     <p>© <span id="year">2026</span> 99 LUCIANO, en del af 99</p>
     <nav class="footer__family" aria-label="Links">
-      <a class="ig-link" target="_blank" rel="noopener">Instagram</a>
+      <span class="footer__socials"></span>
       <a href="https://99management.dk" target="_blank" rel="noopener">99MGMT</a>
     </nav>
   </footer>

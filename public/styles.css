@@ -518,6 +518,42 @@ em, i { font-style: normal; }
   .step__body { padding-left: 0; }
 }
 
+/* Portfolio (no giveaway running): the mark, the name and app icons */
+.folio {
+  min-height: calc(100svh - 260px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 0 40px;
+}
+.folio__mark { width: clamp(170px, 46vw, 320px); }
+.folio__word {
+  margin: 20px -0.22em 0 0;
+  font-size: clamp(1.8rem, 8vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  line-height: 1;
+}
+.apps { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin-top: 44px; }
+.app {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 22%;
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: 0 8px 22px rgba(255, 255, 255, 0.06);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.app svg { width: 30px; height: 30px; }
+.app:hover { transform: translateY(-3px); }
+.app:active { transform: scale(0.94); }
+.footer__socials { display: contents; }
+.is-folio .nav__brand { visibility: hidden; } /* the big mark is already there */
+
 /* Preview mode bar (giveaway/demo.js) */
 .demo-bar {
   position: fixed;
