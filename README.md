@@ -7,8 +7,9 @@ Artist site for 99 LUCIANO, part of 99 (with 99MGMT, 99ENT and 99WRLDWIDE). In D
 This one runs on **Cloudflare Pages**:
 
 - `public/`: the website
-  - `index.html`: the front page of 99luciano.dk. While a giveaway runs it's the giveaway (vote for the next single); when it's closed or past its end time it's a portfolio with app icons for the socials (`SOCIALS` in `giveaway/config.js`; add the Spotify link there when it exists). `/campaigns` redirects here
-  - `giveaway/`: its scripts; `giveaway/config.js` says which giveaway is shown
+  - `index.html`: the front page of 99luciano.dk, a portfolio with app icons for the socials (`SOCIALS` in `giveaway/config.js`; add the Spotify link there when it exists). While a vote is running it also shows "Stem på min næste single og vind et gavekort på 150 kr.", linking to /vote
+  - `vote/`: the giveaway at 99luciano.dk/vote (vote for the next single). `/campaigns` and `/giveaway` redirect here
+  - `giveaway/`: the giveaway's scripts; `giveaway/config.js` says which giveaway is shown and lists the socials
   - `management/`: 99luciano.dk/management, where you edit the giveaway and songs, see votes and draw the winner
 - `functions/`: the server code (Cloudflare Pages Functions), `/api/...` and `/files/...`
 - `lib/`: code shared by the functions
@@ -46,7 +47,7 @@ Pages project → **Custom domains → Set up a custom domain** → `99luciano.d
    - Login method: **One-time PIN** (a code by email).
 3. Open the application again and copy its **Application Audience (AUD) Tag**.
 4. Pages project → **Settings → Variables and Secrets**. Add:
-   - `ACCESS_TEAM_DOMAIN` = your team name, e.g. `99luciano` (the part before `.cloudflareaccess.com`)
+   - `ACCESS_TEAM_DOMAIN` = your team name, e.g. `99luciano` (the part before `.cloudflareaccess.com`). Optional: if it's left out, the team is read from the login itself, and if it's wrong, /management says what to set it to
    - `ACCESS_AUD` = the AUD tag
 5. Redeploy (as in step 2.4).
 

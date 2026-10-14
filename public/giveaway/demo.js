@@ -24,9 +24,9 @@
   var open = mode !== '0';
   var followers = 87;
   var songs = [
-    { id: 'demo-1', title: 'Natlys', artist: '99 LUCIANO', cover: 'giveaway/demo/cover-1.jpg', file: 'giveaway/demo/snippet-1.wav', length: 15 },
-    { id: 'demo-2', title: 'Rødt lys', artist: '99 LUCIANO', cover: 'giveaway/demo/cover-2.jpg', file: 'giveaway/demo/snippet-2.wav', length: 15 },
-    { id: 'demo-3', title: 'Sommer i byen', artist: '99 LUCIANO', cover: null, file: 'giveaway/demo/snippet-3.wav', length: 15 }
+    { id: 'demo-1', title: 'Natlys', artist: '99 LUCIANO', cover: '/giveaway/demo/cover-1.jpg', file: '/giveaway/demo/snippet-1.wav', length: 15 },
+    { id: 'demo-2', title: 'Rødt lys', artist: '99 LUCIANO', cover: '/giveaway/demo/cover-2.jpg', file: '/giveaway/demo/snippet-2.wav', length: 15 },
+    { id: 'demo-3', title: 'Sommer i byen', artist: '99 LUCIANO', cover: null, file: '/giveaway/demo/snippet-3.wav', length: 15 }
   ];
 
   function fakeStatus() {

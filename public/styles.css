@@ -520,7 +520,7 @@ em, i { font-style: normal; }
 
 /* Portfolio (no giveaway running): the mark, the name and app icons */
 .folio {
-  min-height: calc(100svh - 260px);
+  min-height: calc(100svh - 200px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -552,7 +552,22 @@ em, i { font-style: normal; }
 .app:hover { transform: translateY(-3px); }
 .app:active { transform: scale(0.94); }
 .footer__socials { display: contents; }
-.is-folio .nav__brand { visibility: hidden; } /* the big mark is already there */
+.apps--left { justify-content: flex-start; margin-top: 36px; }
+.folio__cta {
+  display: grid;
+  gap: 6px;
+  margin-top: 40px;
+  padding: 18px 26px;
+  background: var(--text);
+  color: var(--bg);
+  text-align: center;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.folio__cta strong { font-size: 0.95rem; font-weight: 800; letter-spacing: 0.12em; }
+.folio__cta span { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; color: #555; }
+.folio__cta:hover { transform: translateY(-2px); }
+.folio__cta:active { transform: scale(0.98); }
+main.vote:has(> .folio) { padding-top: 64px; }
 
 /* Preview mode bar (giveaway/demo.js) */
 .demo-bar {

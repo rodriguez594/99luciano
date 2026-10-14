@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>99 LUCIANO | Stem på næste single</title>
-  <meta name="description" content="Hør klippene og stem på 99 LUCIANOs næste single. Alle, der stemmer, er med i lodtrækningen.">
+  <title>99 LUCIANO</title>
+  <meta name="description" content="99 LUCIANO, kunstner. En del af 99.">
   <meta name="theme-color" content="#000000">
-  <meta property="og:title" content="99 LUCIANO | Stem på min næste single">
-  <meta property="og:description" content="Hør klippene, stem, og vær med i lodtrækningen om et gavekort.">
+  <meta property="og:title" content="99 LUCIANO">
+  <meta property="og:description" content="Kunstner. En del af 99.">
   <meta property="og:image" content="assets/og.png">
   <meta property="og:type" content="website">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
@@ -18,144 +18,16 @@
   <link rel="stylesheet" href="styles.css?v=dev">
 </head>
 <body>
-  <header class="nav">
-    <a href="./" class="nav__brand" aria-label="99 LUCIANO">
-      <img src="assets/mark-160.png" alt="" width="34" height="31">
-      <span>LUCIANO</span>
-    </a>
-  </header>
-
   <main class="vote">
-    <div id="intro" hidden>
-      <p class="label reveal" id="intro-label">Giveaway</p>
-      <h1 class="display reveal">Stem på min næste single.</h1>
-      <p class="vote__intro reveal">Hør klippene og vælg den, der skal udkomme. Alle, der stemmer, er med i lodtrækningen om præmien.</p>
-      <!-- The prize as a gift card. Amount and text come from the prize set at /management. -->
-      <figure class="giftcard reveal" aria-label="Præmie">
-        <div class="giftcard__card">
-          <span class="giftcard__label" id="prize-label">Gavekort</span>
-          <img class="giftcard__mark" src="assets/mark-160.png" alt="" width="40" height="37">
-          <strong class="giftcard__amount" id="prize-amount">150 kr.</strong>
-          <span class="giftcard__note" id="prize-note">Til hvad du vil</span>
-        </div>
-      </figure>
-      <dl class="facts reveal">
-        <dt>Afstemning slutter</dt><dd id="ends"></dd>
-      </dl>
-    </div>
-
-    <!-- Locked: until the Instagram account reaches the goal -->
-    <div id="locked" hidden>
-      <section class="lock" aria-live="polite">
-        <p class="label">Låst indtil <span class="goal"></span> følgere</p>
-        <p class="lock__count"><span id="count">–</span><small>/ <span class="goal"></span></small></p>
-        <div class="lock__bar"><i id="bar"></i></div>
-        <p class="lock__note lock__live" id="lock-note">Opdateres hvert 30. sekund</p>
-      </section>
-
-      <ol class="steps">
-        <li class="step">
-          <div class="step__head"><span class="step__num">01</span><h2 class="step__title"><label for="contact">Få besked, når den åbner</label></h2></div>
-          <div class="step__body">
-            <div id="notify-form" class="form-row">
-              <div class="field">
-                <input id="contact" type="text" inputmode="email" autocomplete="email" autocapitalize="none"
-                       autocorrect="off" spellcheck="false" maxlength="200" placeholder="Email eller telefon" enterkeyhint="send">
-              </div>
-              <p class="step__note" id="notify-note">Vi bruger det kun til at sige til, når giveawayen åbner.</p>
-              <button type="button" class="btn btn--solid btn--wide" id="notify">Giv mig besked</button>
-            </div>
-            <div id="notify-done" hidden>
-              <p class="follow-link"><span id="notify-contact"></span><span class="follow-link__state">Tilmeldt</span></p>
-              <p class="step__note">Du får besked, så snart giveawayen åbner.</p>
-            </div>
-          </div>
-        </li>
-
-        <li class="step">
-          <div class="step__head"><span class="step__num">02</span><h2 class="step__title">Del min profil</h2></div>
-          <div class="step__body">
-            <p class="step__note" style="margin:0 0 18px">Jo hurtigere jeg rammer <span class="goal"></span> følgere, jo hurtigere åbner giveawayen.</p>
-            <button type="button" class="btn btn--solid btn--wide share-ig"><span>Del <span class="ig-handle"></span></span></button>
-            <a class="btn btn--wide ig-link" target="_blank" rel="noopener"><span>Følg <span class="ig-handle"></span></span></a>
-          </div>
-        </li>
-      </ol>
-    </div>
-
-    <!-- Open: follow, username, vote -->
-    <div id="open" hidden>
-      <ol class="steps">
-        <li class="step">
-          <div class="step__head"><span class="step__num">01</span><h2 class="step__title">Følg på Instagram</h2></div>
-          <div class="step__body">
-            <a class="follow-link ig-link" id="follow" target="_blank" rel="noopener">
-              <span class="ig-handle"></span>
-              <span class="follow-link__go">Åbn</span>
-            </a>
-          </div>
-        </li>
-
-        <li class="step">
-          <div class="step__head"><span class="step__num">02</span><h2 class="step__title"><label for="handle">Dit brugernavn</label></h2></div>
-          <div class="step__body">
-            <div class="field">
-              <span aria-hidden="true">@</span>
-              <input id="handle" type="text" autocomplete="username" autocapitalize="none" autocorrect="off"
-                     spellcheck="false" maxlength="64" placeholder="Instagram" enterkeyhint="done">
-            </div>
-            <p class="step__note" id="handle-note">Vi tjekker, at du følger, før vinderen bliver trukket.</p>
-          </div>
-        </li>
-
-        <li class="step">
-          <div class="step__head"><span class="step__num">03</span><h2 class="step__title">Lyt og stem</h2></div>
-          <div class="step__body">
-            <p class="step__note" style="margin:0 0 22px">Tryk på et cover for at høre klippet. Du har én stemme.</p>
-
-            <!-- Three sleeves per row. Tapping one pushes the others aside and its record slides out. -->
-            <div class="crate" id="covers" role="radiogroup" aria-label="Numre"></div>
-            <p class="step__note" id="no-songs" hidden>Numrene kommer snart.</p>
-
-            <!-- Now playing -->
-            <div class="now" id="player" hidden>
-              <div class="now__row">
-                <p class="now__text"><span id="player-artist"></span><b id="player-title"></b></p>
-                <button type="button" class="now__toggle" id="player-toggle">Pause</button>
-              </div>
-              <div class="now__bar"><i id="player-bar"></i></div>
-              <p class="now__time" id="player-time">0:00 / 0:30</p>
-            </div>
-          </div>
-        </li>
-      </ol>
-
-      <div class="submit">
-        <p class="submit__msg" id="msg" role="alert" hidden></p>
-        <button type="button" class="btn btn--solid" id="submit" disabled>Vælg et nummer</button>
-      </div>
-    </div>
-
-    <!-- Entered -->
-    <div id="done" hidden>
-      <p class="label">Du er med</p>
-      <h1 class="display">Tak. Du er med.</h1>
-      <dl class="done__list">
-        <div><dt>Instagram</dt><dd id="done-handle"></dd></div>
-        <div id="done-song-row"><dt>Din stemme</dt><dd id="done-song"></dd></div>
-      </dl>
-      <p class="done__note" id="done-already" hidden></p>
-      <p class="done__note">Vinderen bliver offentliggjort på Instagram, når giveawayen slutter.</p>
-      <p class="done__note">Bliv ved med at følge. Hvis du stopper før lodtrækningen, er du ude.</p>
-      <button type="button" class="btn btn--solid share-ig" style="margin-top:28px"><span>Del <span class="ig-handle"></span></span></button>
-    </div>
-
-    <!-- Closed -->
-    <!-- Portfolio: shown whenever no giveaway is running -->
-    <section class="folio" id="closed" hidden>
+    <section class="folio">
       <img class="folio__mark" src="assets/mark.png" alt="99" width="959" height="882">
       <h1 class="folio__word">LUCIANO</h1>
       <nav class="apps" aria-label="Find mig her"></nav>
+      <!-- Shown while a vote is running -->
+      <a class="folio__cta" id="vote-cta" href="vote/" hidden>
+        <strong>Stem på min næste single</strong>
+        <span id="vote-prize">og vind et gavekort på 150 kr.</span>
+      </a>
     </section>
   </main>
 
@@ -170,7 +42,20 @@
 
   <script src="main.js?v=dev"></script>
   <script src="giveaway/config.js?v=dev"></script>
-  <script src="giveaway/demo.js?v=dev"></script>
-  <script src="giveaway/campaign.js?v=dev"></script>
+  <script src="giveaway/socials.js?v=dev"></script>
+  <script>
+    // Show the vote button while a giveaway with songs is open
+    API.status().then(function (s) {
+      if (!s.closed && s.unlocked && s.songs && s.songs.length) {
+        // "Gavekort på 150 kr. til hvad du vil" → "og vind et gavekort på 150 kr."
+        var m = String(s.prize || '').match(/(\d[\d.,]*)\s*(kr\.?|kroner|dkk)/i);
+        var gift = /gavekort/i.test(s.prize || '');
+        document.getElementById('vote-prize').textContent = m
+          ? 'og vind ' + (gift ? 'et gavekort' : 'en præmie') + ' på ' + m[1] + ' kr.'
+          : (s.prize ? 'og vind ' + s.prize.charAt(0).toLowerCase() + s.prize.slice(1) : 'og vind en præmie');
+        document.getElementById('vote-cta').hidden = false;
+      }
+    }, function () {});
+  </script>
 </body>
 </html>
