@@ -50,7 +50,7 @@
       <!-- Quick overview: tap to jump -->
       <div class="m-quick">
         <a href="#stemmer"><b id="q-votes">–</b><span>Stemmer</span></a>
-        <a href="#stemmer"><b id="q-followers">–</b><span>Følger</span></a>
+        <a href="#vinder"><b id="q-followers">–</b><span>Følger · tjek</span></a>
         <a href="#besked"><b id="q-notif">–</b><span>Vil have besked</span></a>
         <a href="#reposter"><b id="q-reposts">–</b><span>Reposter</span></a>
       </div>
@@ -172,8 +172,29 @@
 
       <!-- Winner -->
       <section class="m-sec" id="vinder">
-        <p class="label">Tjek følgere</p>
-        <p class="step__note"><b>Én ad gangen:</b> under Stemmer → Alle stemmer, tryk på brugernavnet for at åbne deres Instagram, og tryk "Følger", hvis de følger dig. "Mangler tjek" viser dem, du ikke har markeret endnu.</p>
+        <!-- One voter at a time: open their Instagram, come back, answer -->
+        <p class="label" id="fq-count">Tjek følgere</p>
+        <div class="m-fq" id="fq">
+          <div class="m-bar"><i id="fq-bar"></i></div>
+          <div id="fq-card">
+            <p class="m-fq__handle" id="fq-handle">–</p>
+            <p class="m-fq__meta" id="fq-meta"></p>
+            <a class="btn btn--solid btn--wide" id="fq-open" target="_blank" rel="noopener">Åbn Instagram</a>
+            <p class="m-fq__ask" id="fq-ask">Følger de dig?</p>
+            <div class="m-fq__answer">
+              <button type="button" class="btn btn--solid" id="fq-yes">Følger ✓</button>
+              <button type="button" class="btn" id="fq-no">Følger ikke</button>
+            </div>
+            <div class="m-fq__more">
+              <button type="button" class="m-mini" id="fq-skip">Spring over</button>
+              <button type="button" class="m-mini" id="fq-undo" hidden>Fortryd sidste</button>
+            </div>
+          </div>
+          <p class="m-fq__done" id="fq-done" hidden>Alle er tjekket.</p>
+        </div>
+
+        <p class="label" style="margin-top:44px">Andre måder</p>
+        <p class="step__note"><b>I listen:</b> under Stemmer → Alle stemmer har hver stemme en "Følger"-knap.</p>
         <p class="step__note"><b>Alle på én gang:</b> Instagram → Indstillinger → Kontocenter → Dine oplysninger og tilladelser → Download dine oplysninger →
           Følgere og fulgte, format JSON. Upload followers_1.json her, eller indsæt brugernavne, ét per linje.
           Dem, der ikke er på listen, tæller som ikke-følgere (det overskriver dem, du har markeret i hånden).</p>

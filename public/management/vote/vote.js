@@ -523,6 +523,7 @@
     admin('GET', 'entries?campaign=' + C).then(function (rows) {
       voters = rows.slice().reverse(); // newest first
       renderVoters();
+      renderQueue();
     }, function () {});
   }
 
@@ -547,7 +548,7 @@
     var nf = document.createElement('button');
     nf.type = 'button';
     nf.className = 'm-chip' + (voterNotFollowing ? ' is-on' : '');
-    nf.textContent = 'Mangler tjek · ' + voters.filter(function (v) { return !v.verified; }).length;
+    nf.textContent = 'Mangler tjek · ' + voters.filter(function (v) { return !v.checked; }).length;
     nf.addEventListener('click', function () { voterNotFollowing = !voterNotFollowing; renderVoters(); });
     chips.appendChild(nf);
 
@@ -555,7 +556,7 @@
     $('q-followers').textContent = voters.filter(function (v) { return v.verified; }).length;
 
     var list = voters.filter(function (v) {
-      return (voterSong === null || v.title === voterSong) && (!q || v.handle.indexOf(q) >= 0) && (!voterNotFollowing || !v.verified);
+      return (voterSong === null || v.title === voterSong) && (!q || v.handle.indexOf(q) >= 0) && (!voterNotFollowing || !v.checked);
     });
     $('voters-count').textContent = 'Alle stemmer · ' + (list.length === voters.length ? voters.length : list.length + ' af ' + voters.length);
     var box = $('voters');
@@ -567,16 +568,12 @@
       row.innerHTML = '<a target="_blank" rel="noopener"></a><span class="m-voter__song"></span><small></small>' +
         '<button type="button" class="m-mini m-voter__follow"></button>';
       var fb = row.querySelector('.m-voter__follow');
-      fb.textContent = v.verified ? 'Følger ✓' : 'Følger';
+      fb.textContent = v.verified ? 'Følger ✓' : v.checked ? 'Følger ikke ✗' : 'Følger';
       fb.classList.toggle('m-mini--solid', !!v.verified);
       fb.title = v.verified ? 'Markeret som følger. Tryk for at fjerne.' : 'Tryk, når du har tjekket at de følger dig';
       fb.addEventListener('click', function () {
         fb.disabled = true;
-        admin('POST', 'follower', { campaign: CAMPAIGN.id, vote: v.id, verified: !v.verified }).then(function () {
-          v.verified = !v.verified;
-          renderVoters();
-          loadResults();
-        }, function (e) { fb.disabled = false; alert(e.message); });
+        setFollower(v, !v.verified, true).catch(function (e) { fb.disabled = false; alert(e.message); });
       });
       var a = row.querySelector('a');
       a.textContent = '@' + v.handle;
@@ -584,7 +581,7 @@
       row.querySelector('.m-voter__song').textContent = v.title || 'Uden titel';
       row.querySelector('small').textContent = [
         new Date(v.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
-        v.verified ? 'følger' : '',
+        v.verified ? 'følger' : v.checked ? 'følger ikke' : '',
         v.story ? 'story ✓' : v.story_claimed ? 'story venter' : '',
         v.flagged ? 'flaget' : ''
       ].filter(Boolean).join(' · ');
@@ -592,6 +589,86 @@
     });
     $('voters-more').hidden = list.length <= voterLimit;
   }
+
+  function setFollower(v, verified, checked) {
+    return admin('POST', 'follower', { campaign: CAMPAIGN.id, vote: v.id, verified: verified, checked: checked }).then(function () {
+      v.verified = verified;
+      v.checked = checked;
+      renderVoters();
+      renderQueue();
+      loadResults();
+    });
+  }
+
+  // ---------- check followers one at a time ----------
+
+  var skipped = {}, lastAnswered = null, awayAt = 0;
+  function queue() {
+    // Oldest first, so the list is worked through in voting order
+    return voters.filter(function (v) { return !v.checked; }).slice().reverse();
+  }
+
+  function current() {
+    var q = queue();
+    return q.filter(function (v) { return !skipped[v.id]; })[0] || q[0] || null;
+  }
+
+  function renderQueue() {
+    var total = voters.length, done = voters.filter(function (v) { return v.checked; }).length;
+    $('fq-count').textContent = 'Tjek følgere · ' + done + ' af ' + total;
+    $('fq-bar').style.width = (total ? done / total * 100 : 0) + '%';
+    $('fq-undo').hidden = !lastAnswered;
+    var v = current();
+    $('fq-card').hidden = !v;
+    $('fq-done').hidden = !!v;
+    $('fq-done').textContent = total ? 'Alle ' + total + ' er tjekket. ' + voters.filter(function (x) { return x.verified; }).length + ' følger.' : 'Ingen stemmer endnu.';
+    if (!v) return;
+    $('fq-handle').textContent = '@' + v.handle;
+    $('fq-meta').textContent = 'Stemte på ' + (v.title || 'en sang') + ' · ' +
+      new Date(v.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) +
+      (queue().length > 1 ? ' · ' + (queue().length - 1) + ' mere bagefter' : '');
+    $('fq-open').href = 'https://instagram.com/' + encodeURIComponent(v.handle);
+    $('fq').classList.remove('is-back');
+  }
+
+  function answer(verified) {
+    var v = current();
+    if (!v) return;
+    ['fq-yes', 'fq-no'].forEach(function (id) { $(id).disabled = true; });
+    setFollower(v, verified, true).then(function () {
+      lastAnswered = v;
+      delete skipped[v.id];
+      renderQueue();
+    }, function (e) { alert(e.message); }).then(function () {
+      ['fq-yes', 'fq-no'].forEach(function (id) { $(id).disabled = false; });
+    });
+  }
+
+  $('fq-yes').addEventListener('click', function () { answer(true); });
+  $('fq-no').addEventListener('click', function () { answer(false); });
+  $('fq-skip').addEventListener('click', function () {
+    var v = current();
+    if (!v) return;
+    skipped[v.id] = true;
+    // Everyone skipped: start over with the skipped ones
+    if (queue().every(function (x) { return skipped[x.id]; })) skipped = {};
+    renderQueue();
+  });
+  $('fq-undo').addEventListener('click', function () {
+    var v = lastAnswered;
+    if (!v) return;
+    lastAnswered = null;
+    setFollower(v, false, false).catch(function (e) { alert(e.message); });
+  });
+  // Back from Instagram: highlight the answer buttons
+  $('fq-open').addEventListener('click', function () { awayAt = Date.now(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && awayAt && Date.now() - awayAt > 800) {
+      $('fq').classList.add('is-back');
+      $('fq-ask').scrollIntoView({ block: 'center' });
+      awayAt = 0;
+    }
+  });
 
   $('voters-search').addEventListener('input', function () { voterLimit = 100; renderVoters(); });
   $('voters-more').addEventListener('click', function () { voterLimit += 200; renderVoters(); });

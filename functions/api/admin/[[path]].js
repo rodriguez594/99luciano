@@ -276,7 +276,9 @@ export const onRequest = handle(async (context) => {
     case 'POST follower': {
       const b = await body(request);
       const c = await getCampaign(DB, b.campaign);
-      const res = await DB.prepare('UPDATE votes SET verified = ? WHERE campaign = ? AND id = ?').bind(b.verified ? 1 : 0, c.id, Number(b.vote)).run();
+      // checked: false puts them back in the "not checked yet" queue
+      const res = await DB.prepare('UPDATE votes SET verified = ?, follow_checked = ? WHERE campaign = ? AND id = ?')
+        .bind(b.verified ? 1 : 0, b.checked === false ? 0 : 1, c.id, Number(b.vote)).run();
       if (!res.meta.changes) throw new HttpError(404, 'Stemmen findes ikke.');
       return json({ ok: true });
     }
@@ -286,7 +288,7 @@ export const onRequest = handle(async (context) => {
       const c = await getCampaign(DB, b.campaign);
       const list = new Set((Array.isArray(b.followers) ? b.followers : []).map(normalizeHandle).filter(Boolean));
       const votes = await DB.prepare('SELECT id, handle FROM votes WHERE campaign = ?').bind(c.id).all();
-      const stmts = votes.results.map((v) => DB.prepare('UPDATE votes SET verified = ? WHERE id = ?').bind(list.has(v.handle) ? 1 : 0, v.id));
+      const stmts = votes.results.map((v) => DB.prepare('UPDATE votes SET verified = ?, follow_checked = 1 WHERE id = ?').bind(list.has(v.handle) ? 1 : 0, v.id));
       for (let i = 0; i < stmts.length; i += 100) await DB.batch(stmts.slice(i, i + 100));
       return json({ verified: votes.results.filter((v) => list.has(v.handle)).length });
     }
@@ -319,7 +321,8 @@ export const onRequest = handle(async (context) => {
       const size = new Map();
       for (const g of groups.values()) size.set(g, (size.get(g) || 0) + 1);
       return json(votes.map((v) => ({
-        id: v.id, handle: v.handle, title: titles.get(v.song) || '', verified: !!v.verified, story: !!v.story, story_claimed: !!v.story_claimed,
+        id: v.id, handle: v.handle, title: titles.get(v.song) || '', verified: !!v.verified, checked: !!v.follow_checked,
+        story: !!v.story, story_claimed: !!v.story_claimed,
         flagged: size.get(groups.get(v.id)) > 1, grp: groups.get(v.id), created_at: v.created_at,
       })));
     }

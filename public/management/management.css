@@ -474,3 +474,17 @@ a.m-card:hover { border-color: var(--text); }
   .m-nav a { flex: 1; padding: 10px 6px; text-align: center; letter-spacing: 0.1em; font-size: 0.58rem; }
 }
 .m-quick span { overflow-wrap: normal; }
+
+/* Check followers one at a time */
+.m-fq { margin-top: 10px; padding: 22px; border: 2px solid var(--line); }
+.m-fq .m-bar { margin-bottom: 20px; }
+.m-fq__handle { margin: 0; font-size: clamp(1.6rem, 8vw, 2.4rem); font-weight: 800; text-transform: none; overflow-wrap: anywhere; }
+.m-fq__meta { margin: 6px 0 0; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); }
+.m-fq__ask { margin: 26px 0 0; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.1em; color: var(--soft); }
+.m-fq__answer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.m-fq__answer .btn { margin-top: 12px; padding-left: 8px; padding-right: 8px; }
+.m-fq__more { display: flex; gap: 8px; margin-top: 16px; }
+.m-fq__done { margin: 0; font-size: 1rem; font-weight: 800; }
+.m-fq.is-back { border-color: var(--text); }
+.m-fq.is-back .m-fq__ask { color: var(--text); }
+.m-fq__answer .btn { letter-spacing: 0.12em; }
