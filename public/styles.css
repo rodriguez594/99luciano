@@ -194,6 +194,14 @@ em, i { font-style: normal; }
 .facts dd { margin: 0; font-weight: 800; }
 
 /* The prize as a gift card: white, card proportions, a slow sheen */
+/* When the top three songs come out */
+.podium { list-style: none; display: grid; gap: 0; margin: 24px 0 0; padding: 0; max-width: 460px; border-top: 1px solid var(--line); }
+.podium li { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.podium b { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.12em; white-space: nowrap; }
+.podium span { font-size: 0.72rem; font-weight: 700; color: var(--soft); text-align: right; }
+.podium li:first-child b, .podium li:first-child span { color: var(--text); }
+#done .podium { margin: 4px 0 24px; }
+
 /* Countdown to the end of the vote */
 .countdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 420px; margin: 18px 0 0; }
 .countdown div { display: grid; justify-items: center; gap: 6px; padding: 14px 4px 12px; border: 2px solid var(--line); }
