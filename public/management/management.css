@@ -488,3 +488,9 @@ a.m-card:hover { border-color: var(--text); }
 .m-fq.is-back { border-color: var(--text); }
 .m-fq.is-back .m-fq__ask { color: var(--text); }
 .m-fq__answer .btn { letter-spacing: 0.12em; }
+
+/* Notification sign-ups: username + contact */
+.m-signup__who a { font-size: 0.88rem; font-weight: 800; text-transform: none; }
+.m-signup__who a:hover { text-decoration: underline; }
+.m-signup__who.is-unknown { font-size: 0.7rem; font-weight: 700; color: var(--muted); }
+.m-signup .m-voter__song { text-transform: none; overflow-wrap: anywhere; }

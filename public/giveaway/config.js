@@ -51,8 +51,10 @@ var API = {
       .then(function (r) { return r.result; });
   },
   // purpose: 'open' (tell me when the giveaway opens) or 'winner' (tell me when the winner is drawn)
-  notify: function (contact, purpose) {
-    return apiFetch('/api/notify', { campaign: CAMPAIGN.id, contact: contact, purpose: purpose || 'open' })
+  // extra: { handle, device } so /management can show who it is
+  notify: function (contact, purpose, extra) {
+    extra = extra || {};
+    return apiFetch('/api/notify', { campaign: CAMPAIGN.id, contact: contact, purpose: purpose || 'open', handle: extra.handle, device: extra.device })
       .then(function (r) { return r.result; });
   }
 };

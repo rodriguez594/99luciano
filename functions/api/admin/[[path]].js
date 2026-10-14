@@ -68,7 +68,11 @@ export const onRequest = handle(async (context) => {
         DB.prepare('SELECT (SELECT COUNT(*) FROM notify WHERE campaign = ?1) + (SELECT COUNT(*) FROM winner_notify WHERE campaign = ?1) AS n').bind(c.id).first(),
         projectList(DB),
         recentVersions(DB),
-        DB.prepare('SELECT kind, contact, created_at FROM winner_notify WHERE campaign = ? ORDER BY id DESC LIMIT 5').bind(c.id).all(),
+        DB.prepare(
+          `SELECT w.kind, w.contact, w.created_at,
+             COALESCE(w.handle, (SELECT v.handle FROM votes v WHERE v.campaign = w.campaign AND w.device IS NOT NULL AND v.device = w.device ORDER BY v.id LIMIT 1)) AS handle
+           FROM winner_notify w WHERE w.campaign = ? ORDER BY w.id DESC LIMIT 5`
+        ).bind(c.id).all(),
       ]);
       return json({
         vote: {
@@ -336,7 +340,12 @@ export const onRequest = handle(async (context) => {
     // "Tell me when the winner is drawn"
     case 'GET winner-signups': {
       const c = await getCampaign(DB, q('campaign'));
-      const r = await DB.prepare('SELECT kind, contact, created_at, notified_at FROM winner_notify WHERE campaign = ? ORDER BY id').bind(c.id).all();
+      // The username they gave, or the one from a vote on the same phone
+      const r = await DB.prepare(
+        `SELECT w.kind, w.contact, w.created_at, w.notified_at,
+           COALESCE(w.handle, (SELECT v.handle FROM votes v WHERE v.campaign = w.campaign AND w.device IS NOT NULL AND v.device = w.device ORDER BY v.id LIMIT 1)) AS handle
+         FROM winner_notify w WHERE w.campaign = ? ORDER BY w.id`
+      ).bind(c.id).all();
       return json(r.results);
     }
   }

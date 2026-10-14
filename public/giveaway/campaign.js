@@ -204,7 +204,11 @@
       }
       btn.disabled = true;
       btn.textContent = 'Sender…';
-      API.notify(value, 'winner').then(function (result) {
+      var entry = savedEntry();
+      API.notify(value, 'winner', {
+        handle: (entry && entry.handle) || normalizeHandle($('handle').value) || undefined,
+        device: deviceId()
+      }).then(function (result) {
         if (result === 'ok' || result === 'already') {
           var saved = load(WINNER_STORE);
           saved[CAMPAIGN.id] = value;

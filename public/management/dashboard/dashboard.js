@@ -43,7 +43,7 @@
     if (!d.notify_latest.length) nf.appendChild(el('p', 'step__note', 'Ingen har bedt om besked endnu.'));
     d.notify_latest.forEach(function (r) {
       var row = el('div', 'signup');
-      row.appendChild(el('span', null, r.kind === 'sms' ? '+' + r.contact : r.contact));
+      row.appendChild(el('span', null, (r.handle ? '@' + r.handle + ' · ' : '') + (r.kind === 'sms' ? '+' + r.contact : r.contact)));
       row.appendChild(el('span', null, Admin.date(r.created_at, true)));
       nf.appendChild(row);
     });

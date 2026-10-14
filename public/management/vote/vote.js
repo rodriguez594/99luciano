@@ -815,16 +815,28 @@
   }
 
   var signups = [], winnerSignups = [];
-  // Newest first, with when they signed up
+  // Newest first: Instagram username (when known), email/phone, and when they signed up
   function signupRows(box, rows) {
     box.innerHTML = '';
     if (!rows.length) box.innerHTML = '<p class="step__note">Ingen endnu.</p>';
     rows.slice().reverse().forEach(function (r) {
       var div = document.createElement('div');
-      div.className = 'signup';
-      div.innerHTML = '<span></span><span></span>';
-      div.firstChild.textContent = r.kind === 'sms' ? '+' + r.contact : r.contact;
-      div.lastChild.textContent = (r.notified_at ? 'Sendt' : r.kind === 'sms' ? 'SMS' : 'Email') + ' · ' +
+      div.className = 'm-voter m-signup';
+      div.innerHTML = '<span class="m-signup__who"></span><span class="m-voter__song"></span><small></small>';
+      var who = div.querySelector('.m-signup__who');
+      if (r.handle) {
+        var a = document.createElement('a');
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.href = 'https://instagram.com/' + encodeURIComponent(r.handle);
+        a.textContent = '@' + r.handle;
+        who.appendChild(a);
+      } else {
+        who.textContent = 'Ukendt brugernavn';
+        who.classList.add('is-unknown');
+      }
+      div.querySelector('.m-voter__song').textContent = r.kind === 'sms' ? '+' + r.contact : r.contact;
+      div.querySelector('small').textContent = (r.notified_at ? 'Sendt' : r.kind === 'sms' ? 'SMS' : 'Email') + ' · tilmeldt ' +
         new Date(r.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
       box.appendChild(div);
     });
@@ -872,8 +884,8 @@
   }
 
   function signupCsv(rows) {
-    return ['type,kontakt,tilmeldt,sendt'].concat(rows.map(function (r) {
-      return [r.kind, r.kind === 'sms' ? '+' + r.contact : r.contact, r.created_at, r.notified_at || ''].join(',');
+    return ['brugernavn,type,kontakt,tilmeldt,sendt'].concat(rows.map(function (r) {
+      return [r.handle || '', r.kind, r.kind === 'sms' ? '+' + r.contact : r.contact, r.created_at, r.notified_at || ''].join(',');
     }));
   }
 

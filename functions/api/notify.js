@@ -3,7 +3,8 @@
 //   purpose 'winner': when the winner is drawn (only saved for now; nothing is sent yet)
 // Takes an email or a phone number (8 digits are read as Danish).
 // Returns { result: 'ok' | 'already' | 'open' | 'bad_contact' }.
-import { getDb, getCampaign, ipHash, json, body, handle, now } from '../../lib/db.js';
+import { getDb, getCampaign, ipHash, sha256, json, body, handle, now } from '../../lib/db.js';
+import { normalizeHandle } from './vote.js';
 
 export function normalizeContact(input) {
   let v = String(input || '').trim().toLowerCase();
@@ -22,10 +23,19 @@ export const onRequestPost = handle(async ({ request, env }) => {
 
   if (b.purpose === 'winner') {
     if (!n) return json({ result: 'bad_contact' });
+    // The Instagram username, if they voted or typed it; the device links it to their vote later otherwise
+    const h = b.handle ? normalizeHandle(b.handle) : null;
+    const device = /^[a-f0-9]{32}$/.test(b.device || '') ? (await sha256(c.id + ':' + b.device)).slice(0, 32) : null;
     const res = await DB.prepare(
-      `INSERT INTO winner_notify (campaign, kind, contact, ip_hash, created_at) VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO winner_notify (campaign, kind, contact, handle, device, ip_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (campaign, contact) DO NOTHING`
-    ).bind(c.id, n.kind, n.contact, await ipHash(request, env, c.id), now()).run();
+    ).bind(c.id, n.kind, n.contact, h, device, await ipHash(request, env, c.id), now()).run();
+    if (!res.meta.changes && (h || device)) {
+      // Signed up again: fill in what we didn't know the first time
+      await DB.prepare(
+        'UPDATE winner_notify SET handle = COALESCE(handle, ?), device = COALESCE(device, ?) WHERE campaign = ? AND contact = ?'
+      ).bind(h, device, c.id, n.contact).run();
+    }
     return json({ result: res.meta.changes ? 'ok' : 'already' });
   }
 
