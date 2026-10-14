@@ -18,6 +18,13 @@ export const onRequest = handle(async (context) => {
     case 'GET me':
       return json({ email: data.email });
 
+    // Opened as a normal page so Cloudflare Access can show its login for /api/admin,
+    // then sends you back to /management.
+    case 'GET login': {
+      const back = q('return') || '/management/';
+      return Response.redirect(new URL(back.startsWith('/') && !back.startsWith('//') ? back : '/management/', url.origin).toString(), 302);
+    }
+
     // ---------- giveaway settings ----------
     case 'GET campaign':
       return json(campaignOut(await getCampaign(DB, q('campaign'))));

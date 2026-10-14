@@ -11,7 +11,8 @@
   // ---------- talking to /api/admin ----------
 
   function admin(method, path, data, raw) {
-    var opts = { method: method, headers: {} };
+    // Access answers a logged-out request with a redirect to its login page; don't follow it
+    var opts = { method: method, headers: {}, redirect: 'manual' };
     if (raw) {
       opts.body = raw;
       opts.headers['content-type'] = raw.type || 'application/octet-stream';
@@ -20,6 +21,11 @@
       opts.headers['content-type'] = 'application/json';
     }
     return fetch('/api/admin/' + path, opts).then(function (res) {
+      if (res.type === 'opaqueredirect' || res.status === 0) {
+        var r = new Error('login');
+        r.status = 401;
+        throw r;
+      }
       var isJson = (res.headers.get('content-type') || '').indexOf('application/json') === 0;
       if (!isJson) {
         // Access answers with its login page (or a redirect) when the session ran out
@@ -70,7 +76,17 @@
         $('title').textContent = 'Ingen adgang';
         note.textContent = 'Din email har ikke adgang. Tilføj den i Cloudflare Access-reglen for /management.';
       } else if (e.message === 'login') {
-        note.innerHTML = 'Du er ikke logget ind. <a href="" style="text-decoration:underline">Genindlæs siden</a> for at logge ind.';
+        // Log in for /api/admin as a normal page visit, then come back (at most once a minute, so it can't loop)
+        var last = 0;
+        try { last = Number(sessionStorage.getItem('luciano:admin-login')) || 0; } catch (x) {}
+        if (Date.now() - last > 60000) {
+          try { sessionStorage.setItem('luciano:admin-login', String(Date.now())); } catch (x) {}
+          note.textContent = 'Logger ind…';
+          location.href = '/api/admin/login?return=' + encodeURIComponent(location.pathname);
+          return;
+        }
+        note.innerHTML = 'Login virker ikke endnu. Tjek at Cloudflare Access-reglen dækker både /management og /api/admin ' +
+          'med din email, og <a href="/api/admin/login?return=%2Fmanagement%2F" style="text-decoration:underline">prøv igen</a>.';
       } else {
         note.textContent = e.message;
       }
