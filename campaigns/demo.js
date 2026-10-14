@@ -44,16 +44,18 @@
     try {
       Object.keys(localStorage).forEach(function (k) { if (/^luciano:/.test(k)) localStorage.removeItem(k); });
     } catch (e) {}
-    document.cookie.split('; ').forEach(function (c) {
-      var name = c.split('=')[0];
-      if (/^luciano_/.test(name)) document.cookie = name + '=; Max-Age=0; Path=/';
-    });
+    try {
+      document.cookie.split('; ').forEach(function (c) {
+        var name = c.split('=')[0];
+        if (/^luciano_/.test(name)) document.cookie = name + '=; Max-Age=0; Path=/';
+      });
+    } catch (e) {}
   }
 
   function setOpen(v) {
     try { sessionStorage.setItem('luciano:demo-open', v ? '1' : '0'); } catch (e) {}
     reset();
-    location.href = location.pathname;
+    location.reload();
   }
 
   document.addEventListener('DOMContentLoaded', function () {

@@ -43,14 +43,18 @@
   }
 
   // Cookies sit next to localStorage so clearing one of them doesn't reset the vote.
+  // (Some embedded browsers refuse cookies outright, so every access is wrapped.)
   function getCookie(name) {
-    var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
-    if (!m) return null;
-    try { return decodeURIComponent(m[1]); } catch (e) { return null; }
+    try {
+      var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+      return m ? decodeURIComponent(m[1]) : null;
+    } catch (e) { return null; }
   }
   function setCookie(name, value) {
-    document.cookie = name + '=' + encodeURIComponent(value) + '; Max-Age=31536000; Path=/; SameSite=Lax' +
-      (location.protocol === 'https:' ? '; Secure' : '');
+    try {
+      document.cookie = name + '=' + encodeURIComponent(value) + '; Max-Age=31536000; Path=/; SameSite=Lax' +
+        (location.protocol === 'https:' ? '; Secure' : '');
+    } catch (e) {}
   }
 
   // A random id for this browser, so /management can flag several usernames from one device.
