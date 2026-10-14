@@ -1,0 +1,12 @@
+{
+  "name": "99luciano",
+  "private": true,
+  "type": "module",
+  "description": "99luciano.dk on Cloudflare Pages (static site in public/, server code in functions/, data in D1 and KV)",
+  "scripts": {
+    "dev": "wrangler pages dev public --d1 DB --kv FILES --port 8788"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

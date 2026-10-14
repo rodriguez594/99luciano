@@ -20,27 +20,16 @@
       <img src="../assets/mark-160.png" alt="" width="34" height="31">
       <span>LUCIANO</span>
     </a>
-    <button type="button" class="m-logout" id="logout" hidden>Log ud</button>
+    <a class="m-logout" id="logout" href="/cdn-cgi/access/logout" hidden>Log ud</a>
   </header>
 
   <main class="m">
     <p class="label">Management</p>
-    <h1 class="display" id="title">Log ind</h1>
+    <h1 class="display" id="title">Giveaway</h1>
 
-    <!-- Login -->
+    <!-- Shown until the admin API answers -->
     <section id="login" hidden>
-      <p class="step__note">Skriv din email. Du får et link, der logger dig ind.</p>
-      <form id="login-form" class="form-row" novalidate>
-        <div class="field"><input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" placeholder="Email" required></div>
-        <button class="btn btn--solid btn--wide" id="send">Send login-link</button>
-      </form>
-      <p class="step__note" id="login-note" aria-live="polite"></p>
-    </section>
-
-    <!-- Logged in, but not on the list -->
-    <section id="denied" hidden>
-      <p class="step__note">Du er logget ind som <b id="denied-email"></b>, men har ikke adgang.
-        Tilføj emailen i <code>luciano_admins</code> i Supabase (se README).</p>
+      <p class="step__note" id="login-note">Henter…</p>
     </section>
 
     <div id="panel" hidden>
@@ -151,7 +140,6 @@
 
   <script src="../main.js?v=dev"></script>
   <script src="../campaigns/config.js?v=dev"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="management.js?v=dev"></script>
 </body>
 </html>

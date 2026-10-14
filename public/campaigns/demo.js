@@ -1,8 +1,23 @@
-// Preview mode: runs when Supabase isn't set up yet (or with ?demo in the URL).
-// The page uses example songs and a fake follower count, and nothing is saved anywhere.
-// A small DEMO bar lets you switch between the locked and the open giveaway.
+// Preview mode: the page runs on example songs and a fake follower count, and nothing is saved.
+// It turns on with ?demo in the URL, or by itself when the page is served without the server
+// code (a plain file host, before Cloudflare is set up). A small DEMO bar switches between the
+// locked and the open giveaway.
 (function () {
-  if (SUPABASE.url && SUPABASE.anonKey && !/[?&]demo\b/.test(location.search)) return;
+  var forced = window.LUCIANO_DEMO || /[?&]demo\b/.test(location.search);
+  var realStatus = API.status;
+  var active = false;
+
+  // Without ?demo: try the real server first, and only fall back when there is none.
+  if (!forced) {
+    API.status = function () {
+      if (active) return fakeStatus();
+      return realStatus().catch(function (e) {
+        if (!e.noApi) throw e;
+        start();
+        return fakeStatus();
+      });
+    };
+  }
 
   var open = !/[?&]locked\b/.test(location.search);
   try { open = open && sessionStorage.getItem('luciano:demo-open') !== '0'; } catch (e) {}
@@ -13,7 +28,7 @@
     { id: 'demo-3', title: 'Sommer i byen', artist: '99 LUCIANO', cover: 'demo/cover-3.jpg', file: 'demo/snippet-3.wav' }
   ];
 
-  window.giveawayStatus = function () {
+  function fakeStatus() {
     if (!open) followers = Math.min(149, followers + Math.floor(Math.random() * 3));
     return Promise.resolve({
       prize: 'Gavekort på 150 kr. til hvad du vil',
@@ -27,18 +42,22 @@
     });
   };
 
-  window.rpc = function (name, args) {
-    return new Promise(function (resolve) {
-      setTimeout(function () {
-        if (name === 'luciano_notify_me') {
-          var v = String(args.p_contact || '');
-          resolve(/@.+\./.test(v) || v.replace(/\D/g, '').length >= 8 ? 'ok' : 'bad_contact');
-        } else {
-          resolve('ok');
-        }
-      }, 450);
-    });
-  };
+  function later(value) {
+    return new Promise(function (resolve) { setTimeout(function () { resolve(value); }, 450); });
+  }
+
+  function start() {
+    if (active) return;
+    active = true;
+    API.status = fakeStatus;
+    API.vote = function () { return later('ok'); };
+    API.notify = function (contact) {
+      var v = String(contact || '');
+      return later(/@.+\./.test(v) || v.replace(/\D/g, '').length >= 8 ? 'ok' : 'bad_contact');
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addBar);
+    else addBar();
+  }
 
   function reset() {
     try {
@@ -58,7 +77,7 @@
     location.reload();
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  function addBar() {
     var bar = document.createElement('div');
     bar.className = 'demo-bar';
     bar.innerHTML = '<b>Demo</b><button type="button" data-v="0">Låst</button><button type="button" data-v="1">Åben</button><button type="button" data-reset>Forfra</button>';
@@ -70,5 +89,7 @@
       else setOpen(b.getAttribute('data-v') === '1');
     });
     document.body.appendChild(bar);
-  });
+  }
+
+  if (forced) start();
 })();

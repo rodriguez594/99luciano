@@ -1,25 +1,48 @@
-// /management: log in with an email link (Supabase Auth), then edit the giveaway,
-// its songs (covers and snippets go to the "luciano" storage bucket), see votes and draw a winner.
-// Only emails in the luciano_admins table get access; the database enforces that, not this page.
+// /management: edit the giveaway and its songs (covers and snippets are uploaded to the site),
+// see votes, review flagged votes and draw a winner. The login is Cloudflare Access, which
+// sits in front of this page and /api/admin; the server checks it on every request.
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var BUCKET = 'luciano';
-  var sb = null;
-  var user = null;
-  var campaign = null;   // the luciano_campaigns row
-  var songs = [];        // luciano_songs rows, in order
+  var campaign = null;   // giveaway settings
+  var songs = [];        // in order
+  var C = encodeURIComponent(CAMPAIGN.id);
 
-  function show(id) {
-    ['login', 'denied', 'panel'].forEach(function (x) { $(x).hidden = x !== id; });
-    $('logout').hidden = id === 'login';
-    $('title').textContent = id === 'login' ? 'Log ind' : id === 'denied' ? 'Ingen adgang' : 'Giveaway';
+  // ---------- talking to /api/admin ----------
+
+  function admin(method, path, data, raw) {
+    var opts = { method: method, headers: {} };
+    if (raw) {
+      opts.body = raw;
+      opts.headers['content-type'] = raw.type || 'application/octet-stream';
+    } else if (data !== undefined) {
+      opts.body = JSON.stringify(data);
+      opts.headers['content-type'] = 'application/json';
+    }
+    return fetch('/api/admin/' + path, opts).then(function (res) {
+      var isJson = (res.headers.get('content-type') || '').indexOf('application/json') === 0;
+      if (!isJson) {
+        // Access answers with its login page (or a redirect) when the session ran out
+        var e = new Error(res.status === 404 ? 'noapi' : 'login');
+        e.status = res.status;
+        throw e;
+      }
+      return res.json().then(function (out) {
+        if (!res.ok) {
+          var e = new Error(out.error || 'Noget gik galt.');
+          e.status = res.status;
+          throw e;
+        }
+        return out;
+      });
+    }, function () {
+      throw new Error('Ingen forbindelse. Prøv igen.');
+    });
   }
 
-  function err(e) {
-    var m = (e && e.message) || String(e);
-    if (/unauthorized|row-level security|permission denied/i.test(m)) return 'Du har ikke adgang til det.';
-    if (/fetch|network/i.test(m)) return 'Ingen forbindelse. Prøv igen.';
-    return m;
+  function show(id) {
+    $('login').hidden = id !== 'login';
+    $('panel').hidden = id !== 'panel';
+    $('logout').hidden = id !== 'panel';
   }
 
   function download(name, rows) {
@@ -29,103 +52,49 @@
     a.click();
   }
 
-  // ---------- login ----------
+  // ---------- start ----------
 
   function init() {
-    if (!SUPABASE.url || !SUPABASE.anonKey || !window.supabase) {
-      show('login');
-      $('login-note').textContent = 'Supabase er ikke sat op endnu (campaigns/config.js).';
-      $('send').disabled = true;
-      return;
-    }
-    sb = window.supabase.createClient(SUPABASE.url, SUPABASE.anonKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-    });
-    sb.auth.getSession().then(function (res) {
-      if (/access_token=|error_description=/.test(location.hash)) {
-        if (/error_description=/.test(location.hash) && !res.data.session) {
-          $('login-note').textContent = 'Linket er udløbet eller allerede brugt. Send et nyt.';
-        }
-        history.replaceState(null, '', location.pathname + location.search);
+    show('login');
+    admin('GET', 'me').then(function () {
+      show('panel');
+      loadAll();
+    }, function (e) {
+      var note = $('login-note');
+      $('title').textContent = 'Log ind';
+      if (e.message === 'setup' || e.message === 'noapi') {
+        note.textContent = 'Login er ikke sat op endnu. Slå Cloudflare Access til for /management og /api/admin, ' +
+          'og sæt ACCESS_TEAM_DOMAIN og ACCESS_AUD på Pages-projektet (se README).';
+      } else if (e.message === 'denied') {
+        $('title').textContent = 'Ingen adgang';
+        note.textContent = 'Din email har ikke adgang. Tilføj den i Cloudflare Access-reglen for /management.';
+      } else if (e.message === 'login') {
+        note.innerHTML = 'Du er ikke logget ind. <a href="" style="text-decoration:underline">Genindlæs siden</a> for at logge ind.';
+      } else {
+        note.textContent = e.message;
       }
-      setUser(res.data.session ? res.data.session.user : null);
-    });
-    sb.auth.onAuthStateChange(function (_e, session) {
-      var next = session ? session.user : null;
-      if ((next && next.id) !== (user && user.id)) setUser(next);
     });
   }
-
-  function setUser(u) {
-    user = u;
-    if (!user) return show('login');
-    sb.rpc('luciano_is_admin').then(function (res) {
-      if (res.data === true) { show('panel'); loadAll(); }
-      else { $('denied-email').textContent = user.email; show('denied'); }
-    });
-  }
-
-  // The link in the email often opens in a new tab; this tab picks up the session it saved.
-  var waiting = 0;
-  $('login-form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var email = $('email').value.trim();
-    var note = $('login-note');
-    if (!/^\S+@\S+\.\S+$/.test(email)) { note.textContent = 'Skriv din email.'; return; }
-    $('send').disabled = true;
-    note.textContent = 'Sender…';
-    sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: true, emailRedirectTo: location.origin + location.pathname } })
-      .then(function (res) {
-        $('send').disabled = false;
-        if (res.error) {
-          note.textContent = /rate|seconds/i.test(res.error.message) ? 'For mange emails lige nu. Vent et minut.' : res.error.message;
-          return;
-        }
-        $('send').textContent = 'Send et nyt link';
-        note.textContent = 'Sendt til ' + email + '. Åbn emailen og tryk på linket. Siden logger dig ind af sig selv.';
-        clearInterval(waiting);
-        var tries = 0;
-        waiting = setInterval(function () {
-          if (user || ++tries > 360) return clearInterval(waiting);
-          sb.auth.getSession().then(function (r) { if (r.data.session && !user) setUser(r.data.session.user); });
-        }, 2500);
-      });
-  });
-
-  $('logout').addEventListener('click', function () {
-    sb.auth.signOut().then(function () { setUser(null); });
-  });
-
-  // ---------- load ----------
 
   function loadAll() {
-    loadCampaign().then(function () {
-      loadSongs();
-      loadStatus();
-      loadResults();
-      loadFlags();
-      loadSignups();
-    });
+    loadCampaign();
+    loadSongs();
+    loadStatus();
+    loadResults();
+    loadFlags();
+    loadSignups();
   }
 
   function loadCampaign() {
-    return sb.from('luciano_campaigns').select('*').eq('id', CAMPAIGN.id).maybeSingle().then(function (res) {
-      if (res.error) { $('settings-note').textContent = err(res.error); return; }
-      if (!res.data) {
-        // First time: create the giveaway with the defaults
-        return sb.from('luciano_campaigns').insert({ id: CAMPAIGN.id, unlocked_at: new Date().toISOString() }).select().single().then(function (r) {
-          if (r.error) { $('settings-note').textContent = err(r.error); return; }
-          campaign = r.data;
-          fillSettings();
-        });
-      }
-      campaign = res.data;
+    return admin('GET', 'campaign?campaign=' + C).then(function (c) {
+      campaign = c;
       fillSettings();
-    });
+      renderSongs();
+    }, function (e) { $('settings-note').textContent = e.message; });
   }
 
   function loadStatus() {
-    giveawayStatus().then(function (s) {
+    admin('GET', 'status?campaign=' + C).then(function (s) {
       $('followers').textContent = s.followers;
       $('goal-now').textContent = s.goal;
       $('state').textContent = s.closed ? 'Lukket.' : s.unlocked ? 'Åben for stemmer.' : 'Låst indtil ' + s.goal + ' følgere.';
@@ -154,50 +123,47 @@
     var note = $('settings-note');
     var goal = parseInt($('s-goal').value, 10);
     if (!(goal >= 0)) { note.textContent = 'Skriv et antal følgere.'; return; }
-    var patch = {
+    note.textContent = 'Gemmer…';
+    admin('PUT', 'campaign', {
+      campaign: CAMPAIGN.id,
       prize: $('s-prize').value.trim(),
       artist: $('s-artist').value.trim() || '99 LUCIANO',
       ends_at: $('s-ends').value ? new Date($('s-ends').value).toISOString() : null,
       goal: goal,
       open: !$('s-closed').checked
-    };
-    note.textContent = 'Gemmer…';
-    sb.from('luciano_campaigns').update(patch).eq('id', CAMPAIGN.id).select().single().then(function (res) {
-      if (res.error) { note.textContent = err(res.error); return; }
-      campaign = res.data;
+    }).then(function (c) {
+      campaign = c;
       note.textContent = 'Gemt.';
       loadStatus();
       renderSongs();
-    });
+    }, function (e) { note.textContent = e.message; });
   });
 
   $('set-followers').addEventListener('click', function () {
     var n = parseInt($('manual').value, 10);
     if (!(n >= 0)) return;
-    sb.rpc('luciano_admin_followers', { p_followers: n }).then(function (res) {
-      if (res.error) $('state').textContent = err(res.error);
-      else { $('manual').value = ''; loadStatus(); }
-    });
+    admin('POST', 'followers', { followers: n }).then(function () {
+      $('manual').value = '';
+      loadStatus();
+    }, function (e) { $('state').textContent = e.message; });
   });
 
   $('open-now').addEventListener('click', function () {
     if (!confirm('Åbn giveawayen nu, uanset antal følgere?')) return;
-    sb.rpc('luciano_admin_unlock', { p_campaign: CAMPAIGN.id }).then(function (res) {
-      if (res.error) $('state').textContent = err(res.error);
-      else loadStatus();
-    });
+    admin('POST', 'unlock', { campaign: CAMPAIGN.id }).then(loadStatus, function (e) { $('state').textContent = e.message; });
   });
 
   // ---------- songs ----------
 
   function loadSongs() {
-    return sb.from('luciano_songs').select('*').eq('campaign', CAMPAIGN.id)
-      .order('position', { ascending: true }).order('created_at', { ascending: true })
-      .then(function (res) {
-        if (res.error) return;
-        songs = res.data;
-        renderSongs();
-      });
+    return admin('GET', 'songs?campaign=' + C).then(function (list) {
+      songs = list;
+      renderSongs();
+    }, function () {});
+  }
+
+  function replaceSong(s) {
+    songs = songs.map(function (x) { return x.id === s.id ? s : x; });
   }
 
   function renderSongs() {
@@ -229,34 +195,38 @@
 
       var visible = s.title.trim() && s.snippet_url;
       li.classList.toggle('is-hidden', !visible);
-      state.textContent = visible ? 'Vises på siden' : 'Skjult: mangler ' + (s.title.trim() ? 'klip' : 'titel');
+      state.textContent = (visible ? 'Vises på siden' : 'Skjult: mangler ' + (s.title.trim() ? 'klip' : 'titel')) +
+        (s.votes ? ' · ' + s.votes + (s.votes === 1 ? ' stemme' : ' stemmer') : '');
 
       function saveField(field, value) {
         var patch = {};
         patch[field] = value;
         state.textContent = 'Gemmer…';
-        update(s, patch).then(function () { state.textContent = 'Gemt'; }, function (e) { state.textContent = err(e); });
+        admin('PATCH', 'songs/' + s.id, patch).then(function (updated) {
+          replaceSong(updated);
+          state.textContent = 'Gemt';
+          if (field === 'title') setTimeout(renderSongs, 600);
+        }, function (e) { state.textContent = e.message; });
       }
       title.addEventListener('change', function () { saveField('title', title.value.trim()); });
-      artist.addEventListener('change', function () { saveField('artist', artist.value.trim() || null); });
+      artist.addEventListener('change', function () { saveField('artist', artist.value.trim()); });
 
       li.querySelector('.m-cover-input').addEventListener('change', function (e) {
         var file = e.target.files[0];
         if (!file) return;
         state.textContent = 'Uploader cover…';
         squareJpeg(file, 1000).then(function (blob) {
-          return replaceFile(s, 'cover_url', 'cover.jpg', blob, 'image/jpeg');
-        }).catch(function (e) { state.textContent = err(e); });
+          return upload(s, 'cover', blob);
+        }).catch(function (e) { state.textContent = e.message; });
       });
 
       li.querySelector('.m-snippet-input').addEventListener('change', function (e) {
         var file = e.target.files[0];
         if (!file) return;
         if (file.size > 15 * 1024 * 1024) { state.textContent = 'Filen er for stor (max 15 MB).'; return; }
-        var ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp3';
         state.textContent = 'Uploader klip…';
-        replaceFile(s, 'snippet_url', 'snippet.' + ext, file, file.type || 'audio/mpeg')
-          .catch(function (e) { state.textContent = err(e); });
+        var blob = file.type ? file : new Blob([file], { type: 'audio/mpeg' });
+        upload(s, 'snippet', blob).catch(function (e) { state.textContent = e.message; });
       });
 
       var up = li.querySelector('.m-up');
@@ -268,49 +238,18 @@
 
       li.querySelector('.m-del').addEventListener('click', function () {
         if (!confirm('Slet "' + (s.title || 'sang') + '"?')) return;
-        sb.from('luciano_songs').delete().eq('id', s.id).then(function (res) {
-          if (res.error) {
-            state.textContent = res.error.code === '23503' ? 'Har stemmer, kan ikke slettes' : err(res.error);
-            return;
-          }
-          removeFile(s.cover_url);
-          removeFile(s.snippet_url);
-          loadSongs();
-        });
+        admin('DELETE', 'songs/' + s.id).then(loadSongs, function (e) { state.textContent = e.message; });
       });
 
       list.appendChild(li);
     });
   }
 
-  function update(s, patch) {
-    return sb.from('luciano_songs').update(patch).eq('id', s.id).select().single().then(function (res) {
-      if (res.error) throw res.error;
-      Object.assign(s, res.data);
-      return s;
+  function upload(s, kind, blob) {
+    return admin('POST', 'upload?song=' + encodeURIComponent(s.id) + '&kind=' + kind, undefined, blob).then(function (updated) {
+      replaceSong(updated);
+      renderSongs();
     });
-  }
-
-  // Uploads a new file under a fresh name (so phones never show a cached old cover), then removes the old one.
-  function replaceFile(s, field, name, body, type) {
-    var path = CAMPAIGN.id + '/' + s.id + '/' + Date.now() + '-' + name;
-    return sb.storage.from(BUCKET).upload(path, body, { contentType: type, cacheControl: '31536000', upsert: false })
-      .then(function (res) {
-        if (res.error) throw res.error;
-        var old = s[field];
-        var patch = {};
-        patch[field] = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-        return update(s, patch).then(function () {
-          removeFile(old);
-          renderSongs();
-        });
-      });
-  }
-
-  function removeFile(url) {
-    var marker = '/object/public/' + BUCKET + '/';
-    if (!url || url.indexOf(marker) < 0) return;
-    sb.storage.from(BUCKET).remove([decodeURIComponent(url.split(marker)[1])]);
   }
 
   // Crops to a centred square and shrinks to size×size, so covers load fast on phones.
@@ -338,68 +277,45 @@
     order.splice(j, 0, order.splice(i, 1)[0]);
     songs = order;
     renderSongs();
-    Promise.all(order.map(function (s, n) {
-      return s.position === n ? null : update(s, { position: n });
-    })).catch(function () { loadSongs(); });
+    admin('POST', 'order', { campaign: CAMPAIGN.id, ids: order.map(function (s) { return s.id; }) })
+      .then(function (list) { songs = list; renderSongs(); }, function () { loadSongs(); });
   }
 
   $('add-song').addEventListener('click', function () {
-    var pos = songs.length ? Math.max.apply(null, songs.map(function (s) { return s.position; })) + 1 : 0;
-    sb.from('luciano_songs').insert({ campaign: CAMPAIGN.id, title: '', position: pos }).select().single().then(function (res) {
-      if (res.error) return alert(err(res.error));
-      songs.push(res.data);
+    admin('POST', 'songs', { campaign: CAMPAIGN.id }).then(function (s) {
+      songs.push(s);
       renderSongs();
       var inputs = document.querySelectorAll('.m-title');
       inputs[inputs.length - 1].focus();
-    });
+    }, function (e) { alert(e.message); });
   });
 
-  // ---------- votes, sign-ups, winner ----------
+  // ---------- votes ----------
 
   function loadResults() {
-    sb.rpc('luciano_results', { p_campaign: CAMPAIGN.id }).then(function (res) {
-      if (res.error) return;
-      var rows = res.data, total = 0, verified = 0, max = 1;
+    admin('GET', 'results?campaign=' + C).then(function (rows) {
+      var total = 0, verified = 0, max = 1;
       rows.forEach(function (r) { total += r.votes; verified += r.verified; max = Math.max(max, r.votes); });
       $('totals').textContent = total + ' stemmer · ' + verified + ' følger';
-      rows.forEach(function (r) { r.dupes = r.votes - r.people; });
       $('results').innerHTML = '';
       rows.slice().sort(function (a, b) { return b.votes - a.votes; }).forEach(function (r) {
+        var dupes = r.votes - r.people;
         var div = document.createElement('div');
         div.className = 'result';
-        div.innerHTML = '<h3></h3><span>' + r.votes + ' stemmer' + (r.dupes ? ' (' + r.people + ' personer)' : '') +
+        div.innerHTML = '<h3></h3><span>' + r.votes + ' stemmer' + (dupes ? ' (' + r.people + ' personer)' : '') +
           '<br>' + r.verified + ' følger</span><i></i>';
         div.querySelector('h3').textContent = r.title || 'Uden titel';
         div.querySelector('i').style.transform = 'scaleX(' + r.votes / max + ')';
         $('results').appendChild(div);
       });
-    });
-  }
-
-  var signups = [];
-  function loadSignups() {
-    sb.rpc('luciano_signups', { p_campaign: CAMPAIGN.id }).then(function (res) {
-      if (res.error) return;
-      signups = res.data;
-      $('signup-count').textContent = signups.length + ' vil have besked';
-      $('signups').innerHTML = '';
-      signups.forEach(function (r) {
-        var div = document.createElement('div');
-        div.className = 'signup';
-        div.innerHTML = '<span></span><span></span>';
-        div.firstChild.textContent = r.kind === 'sms' ? '+' + r.contact : r.contact;
-        div.lastChild.textContent = r.notified_at ? 'Sendt' : r.kind === 'sms' ? 'SMS' : 'Email';
-        $('signups').appendChild(div);
-      });
-    });
+    }, function () {});
   }
 
   // Votes that share a device or a network, grouped. Each group is one entry in the draw.
   function loadFlags() {
-    sb.rpc('luciano_flags', { p_campaign: CAMPAIGN.id }).then(function (res) {
-      if (res.error) return;
+    admin('GET', 'flags?campaign=' + C).then(function (rows) {
       var groups = [];
-      res.data.forEach(function (r) {
+      rows.forEach(function (r) {
         var g = groups[groups.length - 1];
         if (!g || g.id !== r.grp) groups.push(g = { id: r.grp, rows: [] });
         g.rows.push(r);
@@ -408,7 +324,7 @@
       $('flag-count').textContent = flagged ? 'Flaget · ' + flagged + (flagged === 1 ? ' gruppe' : ' grupper') : 'Flaget · ingen';
       var box = $('flags');
       box.innerHTML = '';
-      if (!res.data.length) {
+      if (!rows.length) {
         box.innerHTML = '<p class="step__note">Intet at vise endnu.</p>';
         return;
       }
@@ -429,31 +345,47 @@
           row.className = 'm-flag__row';
           row.innerHTML = '<span class="m-flag__who"><b></b><small></small></span><button type="button" class="m-mini"></button>';
           row.querySelector('b').textContent = '@' + r.handle;
-          row.querySelector('small').textContent = r.title + ' · ' + new Date(r.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) +
+          row.querySelector('small').textContent = r.title + ' · ' +
+            new Date(r.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) +
             (r.verified ? ' · følger' : '') + (r.same_device ? ' · enhed' : '') + (r.same_network ? ' · netværk' : '');
           var btn = row.querySelector('button');
           btn.textContent = r.cleared ? 'Fortryd' : 'Egen person';
           btn.addEventListener('click', function () {
             btn.disabled = true;
-            sb.rpc('luciano_set_cleared', { p_vote: r.vote_id, p_cleared: !r.cleared }).then(function (x) {
-              if (x.error) { btn.disabled = false; return alert(err(x.error)); }
+            admin('POST', 'clear', { vote: r.vote_id, cleared: !r.cleared }).then(function () {
               loadFlags();
               loadResults();
-            });
+            }, function (e) { btn.disabled = false; alert(e.message); });
           });
           div.appendChild(row);
         });
         box.appendChild(div);
       });
-    });
+    }, function () {});
   }
 
-  $('refresh').addEventListener('click', function () { loadResults(); loadFlags(); loadSignups(); loadStatus(); });
+  var signups = [];
+  function loadSignups() {
+    admin('GET', 'signups?campaign=' + C).then(function (rows) {
+      signups = rows;
+      $('signup-count').textContent = signups.length + ' vil have besked';
+      $('signups').innerHTML = '';
+      signups.forEach(function (r) {
+        var div = document.createElement('div');
+        div.className = 'signup';
+        div.innerHTML = '<span></span><span></span>';
+        div.firstChild.textContent = r.kind === 'sms' ? '+' + r.contact : r.contact;
+        div.lastChild.textContent = r.notified_at ? 'Sendt' : r.kind === 'sms' ? 'SMS' : 'Email';
+        $('signups').appendChild(div);
+      });
+    }, function () {});
+  }
+
+  $('refresh').addEventListener('click', function () { loadResults(); loadFlags(); loadSignups(); loadStatus(); loadSongs(); });
 
   $('export').addEventListener('click', function () {
-    sb.rpc('luciano_entries', { p_campaign: CAMPAIGN.id }).then(function (res) {
-      if (res.error) return;
-      download(CAMPAIGN.id + '-stemmer.csv', ['brugernavn,nummer,foelger,flaget,gruppe,tidspunkt'].concat(res.data.map(function (r) {
+    admin('GET', 'entries?campaign=' + C).then(function (rows) {
+      download(CAMPAIGN.id + '-stemmer.csv', ['brugernavn,nummer,foelger,flaget,gruppe,tidspunkt'].concat(rows.map(function (r) {
         return [r.handle, '"' + (r.title || '').replace(/"/g, '""') + '"', r.verified ? 'ja' : 'nej', r.flagged ? 'ja' : 'nej', r.grp, r.created_at].join(',');
       })));
     });
@@ -464,6 +396,8 @@
       return [r.kind, r.kind === 'sms' ? '+' + r.contact : r.contact, r.created_at, r.notified_at || ''].join(',');
     })));
   });
+
+  // ---------- winner ----------
 
   // Pulls usernames out of Instagram's export (JSON or HTML) or a plain list.
   function extract(text) {
@@ -498,27 +432,26 @@
   $('verify').addEventListener('click', function () {
     var list = extract($('followers-list').value);
     if (!list.length) { $('verify-note').textContent = 'Listen er tom.'; return; }
-    sb.rpc('luciano_verify', { p_campaign: CAMPAIGN.id, p_followers: list }).then(function (res) {
-      if (res.error) { $('verify-note').textContent = err(res.error); return; }
-      $('verify-note').textContent = 'Tjekket mod ' + list.length + ' følgere. ' + res.data + ' stemmer følger.';
+    admin('POST', 'verify', { campaign: CAMPAIGN.id, followers: list }).then(function (r) {
+      $('verify-note').textContent = 'Tjekket mod ' + list.length + ' følgere. ' + r.verified + ' stemmer følger.';
       loadResults();
-    });
+      loadFlags();
+    }, function (e) { $('verify-note').textContent = e.message; });
   });
 
   $('draw').addEventListener('click', function () {
-    sb.rpc('luciano_draw', { p_campaign: CAMPAIGN.id }).then(function (res) {
-      if (res.error) { $('winner-note').textContent = err(res.error); return; }
-      if (!res.data.length) {
+    admin('POST', 'draw', { campaign: CAMPAIGN.id }).then(function (r) {
+      var w = r.winner;
+      if (!w) {
         $('winner').textContent = '';
         $('winner-note').textContent = 'Ingen stemmer fra følgere endnu. Tjek følgere først.';
         return;
       }
-      var w = res.data[0];
-      $('winner').textContent = '@' + w.handle;
       var others = (w.group_handles || []).filter(function (h) { return h !== w.handle; });
+      $('winner').textContent = '@' + w.handle;
       $('winner-note').textContent = 'Ud af ' + w.pool + ' lod · stemte på ' + w.title + ' · ' + new Date(w.created_at).toLocaleString('da-DK') +
         (others.length ? ' · Flaget sammen med @' + others.join(', @') + '. Tjek dem under Flag.' : '');
-    });
+    }, function (e) { $('winner-note').textContent = e.message; });
   });
 
   init();

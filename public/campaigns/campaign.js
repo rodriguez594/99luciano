@@ -157,7 +157,7 @@
   var timer = 0;
   function poll() {
     clearTimeout(timer);
-    giveawayStatus()
+    API.status()
       .then(apply, function () {
         if (!view) show('locked');
         $('lock-note').textContent = 'Kunne ikke hente antal følgere. Prøver igen om lidt.';
@@ -195,7 +195,7 @@
     var btn = $('notify');
     btn.disabled = true;
     btn.textContent = 'Sender…';
-    rpc('luciano_notify_me', { p_campaign: CAMPAIGN.id, p_contact: value })
+    API.notify(value)
       .then(function (result) {
         if (result === 'ok' || result === 'already') {
           var saved = load(NOTIFY_STORE);
@@ -417,7 +417,7 @@
     btn.textContent = 'Sender…';
     $('msg').hidden = true;
 
-    rpc('luciano_vote', { p_campaign: CAMPAIGN.id, p_handle: handle, p_song: selected, p_device: deviceId() })
+    API.vote(handle, selected, deviceId())
       .then(function (result) {
         if (result !== 'ok' && result !== 'already') {
           showMsg(VOTE_ERRORS[result] || 'Noget gik galt. Prøv igen.');
