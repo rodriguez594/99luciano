@@ -73,7 +73,6 @@
   cursor: pointer;
   overflow: hidden;
 }
-.m-cover.is-blank { padding: 0; background-size: 40% auto; background-position: center 40%; }
 .m-cover input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .m-cover-hint {
   position: absolute;
@@ -147,3 +146,34 @@
 .m-flag__who b { font-size: 0.85rem; text-transform: none; overflow-wrap: anywhere; }
 .m-flag__who small { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
 .m-flag__row .m-mini { flex: none; }
+
+/* Clip editor: pick 15–60 seconds of the song on its waveform */
+.m-clip { display: grid; gap: 10px; margin-top: 8px; padding: 12px; border: 2px solid var(--line); }
+.m-clip__lens { display: flex; flex-wrap: wrap; gap: 6px; }
+.m-chip {
+  padding: 7px 10px;
+  border: 2px solid var(--line);
+  background: none;
+  color: var(--soft);
+  font: 800 0.62rem/1 var(--font);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.m-chip.is-on { border-color: var(--text); background: var(--text); color: var(--bg); }
+.m-chip:disabled { opacity: 0.25; cursor: default; }
+.m-clip__wave { position: relative; height: 64px; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.m-clip__wave canvas { display: block; width: 100%; height: 100%; }
+.m-clip__win {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border: 2px solid var(--text);
+  background: rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+.m-clip__win i { position: absolute; top: 50%; left: 50%; width: 10px; height: 18px; margin: -9px 0 0 -5px; border-left: 2px solid var(--text); border-right: 2px solid var(--text); }
+.m-clip__head { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; opacity: 0; pointer-events: none; }
+.m-clip__info { margin: 0; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em; color: var(--soft); font-variant-numeric: tabular-nums; }
+.m-mini--solid { background: var(--text); color: var(--bg); border-color: var(--text); }
+.m-audio__info { margin: 4px 0 0; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); }

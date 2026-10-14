@@ -3,7 +3,6 @@
   var all = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
   var STORE = 'luciano:entries';
   var NOTIFY_STORE = 'luciano:notify';
-  var LEN = CAMPAIGN.snippetSeconds || 30;
   var POLL = 30000;
   var IG_URL = 'https://instagram.com/' + CAMPAIGN.instagram;
 
@@ -244,88 +243,94 @@
 
   // ---------- open: snippets (record sleeves) ----------
 
-  // Album art, or a plain 99 sleeve until the cover is added.
+  var MAX_LEN = 60;
+
+  // Album art, or a white sleeve with a black record printed on it when there's no cover.
   function art(el, s) {
     el.classList.toggle('is-blank', !s.cover);
     el.style.backgroundImage = s.cover ? 'url("' + s.cover + '")' : '';
-    if (el.classList.contains('sleeve') || el.classList.contains('cover__art')) el.textContent = s.cover ? '' : s.title;
   }
 
-  // Builds the grid of covers. Only redraws when the songs actually changed.
+  // Builds the rows of three sleeves. Only redraws when the songs actually changed.
   var songsKey = '';
   function renderSongs(list) {
     var key = JSON.stringify(list);
     if (key === songsKey) return;
     songsKey = key;
     songs = list;
-    $('covers').innerHTML = '';
+    var crate = $('covers');
+    crate.innerHTML = '';
     $('no-songs').hidden = list.length > 0;
-    list.forEach(addCover);
+    for (var i = 0; i < list.length; i += 3) {
+      var row = document.createElement('div');
+      row.className = 'crate__row';
+      for (var j = i; j < i + 3; j++) {
+        if (list[j]) row.appendChild(cover(list[j]));
+        else {
+          var spacer = document.createElement('span');
+          spacer.className = 'cover cover--empty';
+          row.appendChild(spacer);
+        }
+      }
+      crate.appendChild(row);
+    }
     if (selected && !song(selected)) {
       selected = null;
       $('submit').disabled = true;
       $('submit').textContent = 'Vælg et nummer';
     }
-    if (selected) all('.cover').forEach(function (el) { el.setAttribute('aria-checked', String(el.dataset.id === selected)); });
     if (playing && !song(playing)) {
       audio.pause();
       playing = null;
       $('player').hidden = true;
     }
+    all('.cover[data-id]').forEach(function (el) {
+      el.setAttribute('aria-checked', String(el.dataset.id === selected));
+      el.classList.toggle('is-active', el.dataset.id === playing);
+    });
   }
 
-  function addCover(s) {
-    var li = document.createElement('li');
+  function cover(s) {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'cover';
     btn.dataset.id = s.id;
     btn.setAttribute('role', 'radio');
     btn.setAttribute('aria-checked', 'false');
-    btn.innerHTML = '<span class="cover__art art"></span><span class="cover__pick">Din stemme</span>' +
+    btn.innerHTML =
+      '<span class="cover__deck">' +
+        '<span class="cover__record"><span class="record__disc"><span class="record__label art"></span></span></span>' +
+        '<span class="cover__art art"></span>' +
+        '<span class="cover__pick">Din stemme</span>' +
+      '</span>' +
       '<span class="cover__title"></span><span class="cover__artist"></span>';
     art(btn.querySelector('.cover__art'), s);
+    art(btn.querySelector('.record__label'), s);
     btn.querySelector('.cover__title').textContent = s.title;
     btn.querySelector('.cover__artist').textContent = s.artist;
+    btn.setAttribute('aria-label', s.title + ', ' + s.artist);
     btn.addEventListener('click', function () { tap(s); });
-    li.appendChild(btn);
-    $('covers').appendChild(li);
+    return btn;
   }
 
-  var deck = $('deck');
-  var swapTimer = 0;
-
-  // Puts a song on the deck: the old record slides back in, the new one slides out.
-  function putOnDeck(s) {
-    var wasOut = deck.classList.contains('is-out');
-    $('player').hidden = false;
-    deck.classList.remove('is-out', 'is-spinning');
-    clearTimeout(swapTimer);
-    swapTimer = setTimeout(function () {
-      art($('sleeve'), s);
-      art($('record-label'), s);
-      $('player-artist').textContent = s.artist;
-      $('player-title').textContent = s.title;
-      deck.offsetWidth; // restart the slide
-      deck.classList.add('is-out');
-      if (!audio.paused) deck.classList.add('is-spinning');
-    }, wasOut ? 380 : 0);
-    var box = $('player').getBoundingClientRect();
-    if (box.top < 70 || box.top > window.innerHeight * 0.5) {
-      $('player').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
+  function el(id) { return document.querySelector('.cover[data-id="' + id + '"]'); }
 
   function tap(s) {
     selected = s.id;
-    all('.cover').forEach(function (el) { el.setAttribute('aria-checked', String(el.dataset.id === s.id)); });
+    all('.cover[data-id]').forEach(function (c) { c.setAttribute('aria-checked', String(c.dataset.id === s.id)); });
     $('submit').disabled = false;
     $('submit').textContent = 'Stem på ' + s.title;
     $('msg').hidden = true;
 
     if (playing === s.id) { toggle(); return; }
+
+    // The old record slides back in, the new one comes out and the others make room
+    all('.cover.is-active').forEach(function (c) { c.classList.remove('is-active', 'is-spinning', 'is-paused'); });
     playing = s.id;
-    putOnDeck(s);
+    el(s.id).classList.add('is-active');
+    $('player').hidden = false;
+    $('player-artist').textContent = s.artist;
+    $('player-title').textContent = s.title;
     resetTime();
     audio.src = s.file;
     // play() has to start inside the tap, or phones block it
@@ -337,16 +342,18 @@
     if (audio.paused) audio.play().catch(function () {});
     else audio.pause();
   }
-  deck.addEventListener('click', toggle);
   $('player-toggle').addEventListener('click', toggle);
 
   function length() {
-    return isFinite(audio.duration) && audio.duration > 0 ? Math.min(audio.duration, LEN) : LEN;
+    var s = song(playing);
+    var max = (s && s.length) || MAX_LEN;
+    return isFinite(audio.duration) && audio.duration > 0 ? Math.min(audio.duration, max) : max;
   }
 
   function resetTime() {
     $('player-bar').style.transform = 'scaleX(0)';
-    $('player-time').textContent = fmt(0) + ' / ' + fmt(LEN);
+    var s = song(playing);
+    $('player-time').textContent = fmt(0) + ' / ' + fmt((s && s.length) || length());
   }
 
   var raf = 0;
@@ -364,10 +371,12 @@
   }
 
   function setPlaying(on) {
-    if (on && deck.classList.contains('is-out')) deck.classList.add('is-spinning');
-    deck.classList.toggle('is-paused', !on);
+    var c = playing && el(playing);
+    if (c) {
+      if (on) c.classList.add('is-spinning');
+      c.classList.toggle('is-paused', !on);
+    }
     $('player-toggle').textContent = on ? 'Pause' : 'Afspil';
-    all('.cover').forEach(function (el) { el.classList.toggle('is-playing', on && el.dataset.id === playing); });
   }
 
   audio.addEventListener('playing', function () {

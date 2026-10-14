@@ -105,25 +105,19 @@
           <div class="step__body">
             <p class="step__note" style="margin:0 0 22px">Tryk på et cover for at høre klippet. Du har én stemme.</p>
 
-            <!-- Now playing: the record slides out of the sleeve and spins -->
-            <div class="player" id="player" hidden>
-              <button type="button" class="deck" id="deck" aria-label="Afspil / pause">
-                <span class="record"><span class="record__disc"><span class="record__label art" id="record-label"></span></span></span>
-                <span class="sleeve art" id="sleeve"></span>
-              </button>
-              <div class="player__info">
-                <p class="player__artist" id="player-artist"></p>
-                <p class="player__title" id="player-title"></p>
-                <div class="player__bar"><i id="player-bar"></i></div>
-                <div class="player__row">
-                  <span id="player-time">0:00 / 0:30</span>
-                  <button type="button" class="player__toggle" id="player-toggle">Pause</button>
-                </div>
-              </div>
-            </div>
-
-            <ul class="covers" id="covers" role="radiogroup" aria-label="Numre"></ul>
+            <!-- Three sleeves per row. Tapping one pushes the others aside and its record slides out. -->
+            <div class="crate" id="covers" role="radiogroup" aria-label="Numre"></div>
             <p class="step__note" id="no-songs" hidden>Numrene kommer snart.</p>
+
+            <!-- Now playing -->
+            <div class="now" id="player" hidden>
+              <div class="now__row">
+                <p class="now__text"><span id="player-artist"></span><b id="player-title"></b></p>
+                <button type="button" class="now__toggle" id="player-toggle">Pause</button>
+              </div>
+              <div class="now__bar"><i id="player-bar"></i></div>
+              <p class="now__time" id="player-time">0:00 / 0:30</p>
+            </div>
           </div>
         </li>
       </ol>

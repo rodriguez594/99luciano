@@ -5,6 +5,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var campaign = null;   // giveaway settings
   var songs = [];        // in order
+  var editors = {};      // song id → clip being picked (survives the list redrawing)
   var C = encodeURIComponent(CAMPAIGN.id);
 
   // ---------- talking to /api/admin ----------
@@ -171,6 +172,7 @@
     list.innerHTML = '';
     songs.forEach(function (s, i) {
       var li = $('song-tpl').content.firstElementChild.cloneNode(true);
+      li.dataset.id = s.id;
       var state = li.querySelector('.m-song__state');
       var cover = li.querySelector('.m-cover');
       cover.classList.toggle('is-blank', !s.cover_url);
@@ -189,8 +191,14 @@
         a.preload = 'none';
         a.src = s.snippet_url;
         audioBox.appendChild(a);
+        if (s.clip_length) {
+          var info = document.createElement('p');
+          info.className = 'm-audio__info';
+          info.textContent = s.clip_length + ' sek, fra ' + fmt(s.clip_start || 0) + ' i sangen';
+          audioBox.appendChild(info);
+        }
       } else {
-        audioBox.textContent = 'Intet klip endnu';
+        audioBox.textContent = 'Intet klip endnu. Vælg sangen herunder.';
       }
 
       var visible = s.title.trim() && s.snippet_url;
@@ -222,12 +230,21 @@
 
       li.querySelector('.m-snippet-input').addEventListener('change', function (e) {
         var file = e.target.files[0];
+        e.target.value = '';
         if (!file) return;
-        if (file.size > 15 * 1024 * 1024) { state.textContent = 'Filen er for stor (max 15 MB).'; return; }
-        state.textContent = 'Uploader klip…';
-        var blob = file.type ? file : new Blob([file], { type: 'audio/mpeg' });
-        upload(s, 'snippet', blob).catch(function (e) { state.textContent = e.message; });
+        state.textContent = 'Læser sangen…';
+        decode(file).then(function (buffer) {
+          // 30 seconds by default, or the longest length that fits a short song
+          var fits = lengths(buffer.duration);
+          var len = fits.indexOf(30) >= 0 ? 30 : (fits[fits.length - 1] || Math.floor(buffer.duration));
+          editors[s.id] = { buffer: buffer, len: len, start: Math.max(0, Math.min(buffer.duration - len, buffer.duration * 0.3)) };
+          renderSongs();
+        }, function () {
+          state.textContent = 'Kunne ikke læse filen. Prøv en MP3, WAV eller M4A.';
+        });
       });
+
+      if (editors[s.id]) mountEditor(li, s, editors[s.id]);
 
       var up = li.querySelector('.m-up');
       var down = li.querySelector('.m-down');
@@ -245,10 +262,218 @@
     });
   }
 
-  function upload(s, kind, blob) {
-    return admin('POST', 'upload?song=' + encodeURIComponent(s.id) + '&kind=' + kind, undefined, blob).then(function (updated) {
+  function upload(s, kind, blob, extra) {
+    return admin('POST', 'upload?song=' + encodeURIComponent(s.id) + '&kind=' + kind + (extra || ''), undefined, blob).then(function (updated) {
       replaceSong(updated);
       renderSongs();
+    });
+  }
+
+  // ---------- clip editor ----------
+
+  var LENGTHS = [15, 30, 45, 60];
+  var ctx = null;
+  function audioCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx;
+  }
+
+  function fmt(sec) {
+    sec = Math.max(0, Math.round(sec));
+    return Math.floor(sec / 60) + ':' + ('0' + (sec % 60)).slice(-2);
+  }
+
+  // Clip lengths that fit in a song of this duration
+  function lengths(duration) {
+    return LENGTHS.filter(function (l) { return l <= duration + 0.5; });
+  }
+
+  function decode(file) {
+    return file.arrayBuffer().then(function (data) {
+      return new Promise(function (resolve, reject) {
+        var p = audioCtx().decodeAudioData(data, resolve, reject);
+        if (p && p.then) p.then(resolve, reject);
+      });
+    });
+  }
+
+  var preview = null; // { source, raf, songId }
+  function stopPreview() {
+    if (!preview) return;
+    try { preview.source.stop(); } catch (e) {}
+    cancelAnimationFrame(preview.raf);
+    var head = document.querySelector('.m-song[data-id="' + preview.songId + '"] .m-clip__head');
+    if (head) head.style.opacity = 0;
+    var btn = document.querySelector('.m-song[data-id="' + preview.songId + '"] .m-clip-play');
+    if (btn) btn.textContent = 'Lyt';
+    preview = null;
+  }
+
+  function mountEditor(li, s, ed) {
+    var box = li.querySelector('.m-clip');
+    var wave = box.querySelector('.m-clip__wave');
+    var canvas = wave.querySelector('canvas');
+    var win = box.querySelector('.m-clip__win');
+    var head = box.querySelector('.m-clip__head');
+    var info = box.querySelector('.m-clip__info');
+    var playBtn = box.querySelector('.m-clip-play');
+    var saveBtn = box.querySelector('.m-clip-save');
+    var state = li.querySelector('.m-song__state');
+    var dur = ed.buffer.duration;
+    box.hidden = false;
+
+    var fits = lengths(dur);
+    if (!fits.length) fits = [Math.floor(dur)];
+    if (fits.indexOf(ed.len) < 0) ed.len = fits[fits.length - 1];
+
+    box.querySelectorAll('.m-chip').forEach(function (chip) {
+      var l = Number(chip.dataset.len);
+      chip.disabled = l > dur + 0.5;
+      chip.classList.toggle('is-on', l === ed.len);
+      chip.addEventListener('click', function () {
+        ed.len = l;
+        ed.start = Math.min(ed.start, Math.max(0, dur - l));
+        box.querySelectorAll('.m-chip').forEach(function (c) { c.classList.toggle('is-on', c === chip); });
+        stopPreview();
+        place();
+      });
+    });
+
+    function place() {
+      win.style.left = (ed.start / dur * 100) + '%';
+      win.style.width = (Math.min(ed.len, dur) / dur * 100) + '%';
+      info.textContent = fmt(ed.start) + ' – ' + fmt(ed.start + Math.min(ed.len, dur)) + ' af ' + fmt(dur) + ' · træk feltet hen til det stykke, der skal høres';
+    }
+
+    // Waveform: the loudest sample in each column
+    requestAnimationFrame(function () {
+      var w = canvas.clientWidth, h = canvas.clientHeight, dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(w * dpr));
+      canvas.height = Math.max(1, Math.round(h * dpr));
+      var g = canvas.getContext('2d');
+      var chans = [];
+      for (var c = 0; c < Math.min(2, ed.buffer.numberOfChannels); c++) chans.push(ed.buffer.getChannelData(c));
+      var n = chans[0].length, cols = canvas.width, step = Math.max(1, Math.floor(n / cols));
+      g.fillStyle = 'rgba(255,255,255,0.55)';
+      for (var x = 0; x < cols; x++) {
+        var peak = 0, from = Math.floor(x * n / cols);
+        for (var i = from; i < from + step && i < n; i += 4) {
+          for (var k = 0; k < chans.length; k++) { var v = Math.abs(chans[k][i]); if (v > peak) peak = v; }
+        }
+        var bar = Math.max(1, peak * canvas.height * 0.95);
+        g.fillRect(x, (canvas.height - bar) / 2, 1, bar);
+      }
+    });
+
+    // Drag the window (or tap the waveform to move it there)
+    var dragFrom = null;
+    function timeAt(ev) {
+      var r = wave.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * dur;
+    }
+    wave.addEventListener('pointerdown', function (ev) {
+      wave.setPointerCapture(ev.pointerId);
+      var t = timeAt(ev);
+      if (t < ed.start || t > ed.start + ed.len) ed.start = t - ed.len / 2;
+      dragFrom = { t: t, start: ed.start };
+      ed.start = Math.max(0, Math.min(dur - ed.len, ed.start));
+      stopPreview();
+      place();
+    });
+    wave.addEventListener('pointermove', function (ev) {
+      if (!dragFrom) return;
+      ed.start = Math.max(0, Math.min(dur - ed.len, dragFrom.start + timeAt(ev) - dragFrom.t));
+      place();
+    });
+    wave.addEventListener('pointerup', function () { dragFrom = null; });
+    wave.addEventListener('pointercancel', function () { dragFrom = null; });
+
+    playBtn.addEventListener('click', function () {
+      if (preview && preview.songId === s.id) { stopPreview(); return; }
+      stopPreview();
+      var ac = audioCtx();
+      if (ac.state === 'suspended') ac.resume();
+      var src = ac.createBufferSource();
+      src.buffer = ed.buffer;
+      src.connect(ac.destination);
+      var len = Math.min(ed.len, dur - ed.start), t0 = ac.currentTime;
+      src.start(0, ed.start, len);
+      preview = { source: src, songId: s.id, raf: 0 };
+      playBtn.textContent = 'Stop';
+      head.style.opacity = 1;
+      (function move() {
+        var t = ed.start + Math.min(len, ac.currentTime - t0);
+        head.style.left = (t / dur * 100) + '%';
+        if (ac.currentTime - t0 < len) preview.raf = requestAnimationFrame(move);
+      })();
+      src.onended = function () { if (preview && preview.source === src) stopPreview(); };
+    });
+
+    box.querySelector('.m-clip-cancel').addEventListener('click', function () {
+      stopPreview();
+      delete editors[s.id];
+      renderSongs();
+    });
+
+    saveBtn.addEventListener('click', function () {
+      stopPreview();
+      saveBtn.disabled = true;
+      state.textContent = 'Laver klip…';
+      encodeClip(ed.buffer, ed.start, Math.min(ed.len, dur - ed.start)).then(function (blob) {
+        state.textContent = 'Uploader klip…';
+        return upload(s, 'snippet', blob, '&start=' + ed.start.toFixed(2) + '&length=' + ed.len).then(function () {
+          delete editors[s.id];
+          renderSongs();
+        });
+      }).catch(function (e) {
+        saveBtn.disabled = false;
+        state.textContent = e.message || 'Kunne ikke lave klippet.';
+      });
+    });
+
+    place();
+  }
+
+  // Cuts the chosen part, fades it in and out, and encodes it to MP3 (160 kbps) in the browser.
+  function encodeClip(buffer, start, len) {
+    return new Promise(function (resolve, reject) {
+      if (!window.lamejs) return reject(new Error('MP3-encoderen kunne ikke indlæses. Genindlæs siden.'));
+      var rate = buffer.sampleRate;
+      var channels = Math.min(2, buffer.numberOfChannels);
+      var from = Math.floor(start * rate), count = Math.floor(len * rate);
+      var fade = Math.min(Math.floor(rate * 0.4), Math.floor(count / 4));
+      var pcm = [];
+      for (var c = 0; c < channels; c++) {
+        var src = buffer.getChannelData(c).subarray(from, from + count);
+        var out = new Int16Array(src.length);
+        for (var i = 0; i < src.length; i++) {
+          var gain = i < fade ? i / fade : i > src.length - fade ? (src.length - i) / fade : 1;
+          var v = Math.max(-1, Math.min(1, src[i] * gain));
+          out[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
+        }
+        pcm.push(out);
+      }
+      var enc;
+      try { enc = new lamejs.Mp3Encoder(channels, rate, 160); } catch (e) { return reject(new Error('Lydformatet kan ikke laves om til MP3.')); }
+      var parts = [], pos = 0, BLOCK = 1152 * 40;
+      // Encode in slices so the page stays responsive
+      (function next() {
+        try {
+          var end = Math.min(pos + BLOCK, count);
+          for (var p = pos; p < end; p += 1152) {
+            var l = pcm[0].subarray(p, Math.min(p + 1152, end));
+            var buf = channels === 2 ? enc.encodeBuffer(l, pcm[1].subarray(p, Math.min(p + 1152, end))) : enc.encodeBuffer(l);
+            if (buf.length) parts.push(new Uint8Array(buf));
+          }
+          pos = end;
+          if (pos < count) return setTimeout(next, 0);
+          var last = enc.flush();
+          if (last.length) parts.push(new Uint8Array(last));
+          resolve(new Blob(parts, { type: 'audio/mpeg' }));
+        } catch (e) {
+          reject(new Error('Kunne ikke lave klippet.'));
+        }
+      })();
     });
   }
 

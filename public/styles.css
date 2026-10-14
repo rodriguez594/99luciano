@@ -283,34 +283,35 @@ em, i { font-style: normal; }
 .field input::placeholder { color: rgba(255, 255, 255, 0.22); }
 .form-row .btn { margin-top: 18px; }
 
-/* Record sleeves */
+/* Record sleeves: three per row. Tapping one makes it grow and squeezes the other two aside,
+   while its record slides out of the sleeve and spins. */
 .art { background: #151515 center / cover no-repeat; }
-.art.is-blank {
-  /* No cover yet: a black sleeve with the 99 mark and the title */
-  display: flex;
-  align-items: flex-end;
-  padding: 10px;
-  background: url("assets/mark-160.png") center 42% / 34% auto no-repeat, linear-gradient(160deg, #1d1d1d, #080808);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  line-height: 1.3;
-  color: var(--soft);
-}
 
-.covers {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 22px 14px;
+/* No cover: a white sleeve with a black record printed on it */
+.cover__art.is-blank, .m-cover.is-blank {
+  background:
+    radial-gradient(circle closest-side, #111 0 3%, #f2f2f2 3.5% 24%, transparent 24.5%),
+    repeating-radial-gradient(circle closest-side, #0b0b0b 0 1.4%, #181818 1.4% 2.2%);
+  background-color: #fff;
 }
-@media (min-width: 560px) { .covers { grid-template-columns: repeat(3, 1fr); } }
+.cover__art.is-blank::after, .m-cover.is-blank::after {
+  /* white around the printed record */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle closest-side, transparent 0 80%, #fff 80.5%);
+}
+/* …and the record that comes out of it has a plain white label, no logo */
+.record__label.is-blank { background: #f2f2f2; }
+
+.crate { display: grid; gap: 26px; }
+.crate__row { display: flex; gap: 10px; align-items: flex-start; }
+
 .cover {
   position: relative;
   display: block;
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   padding: 0;
   border: 0;
   background: none;
@@ -319,77 +320,52 @@ em, i { font-style: normal; }
   text-transform: uppercase;
   text-align: left;
   cursor: pointer;
+  transition: flex-grow 0.65s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s;
 }
-.cover__art {
-  display: block;
-  aspect-ratio: 1;
-  width: 100%;
-  outline: 2px solid transparent;
-  outline-offset: 4px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
-  transition: transform 0.25s, outline-color 0.25s, opacity 0.25s;
-}
-.cover:active .cover__art { transform: scale(0.97); }
-.cover__title { display: block; margin-top: 12px; font-size: 0.85rem; font-weight: 800; line-height: 1.25; }
-.cover__artist { display: block; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); }
-.cover__pick {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  padding: 5px 8px;
-  background: var(--text);
-  color: var(--bg);
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  opacity: 0;
-  transform: translateY(-4px);
-  transition: opacity 0.2s, transform 0.2s;
-}
-.cover[aria-checked="true"] .cover__art { outline-color: var(--text); }
-.cover[aria-checked="true"] .cover__pick { opacity: 1; transform: none; }
-.covers:has(.cover[aria-checked="true"]) .cover[aria-checked="false"] .cover__art { opacity: 0.45; }
+.cover--empty { visibility: hidden; cursor: default; }
+.cover.is-active { flex-grow: 2.7; }
+.crate__row:has(.is-active) .cover:not(.is-active):not(.cover--empty) { opacity: 0.55; }
 
-/* Player: sleeve on the left, the record slides out to the right and spins */
-.player { margin: 0 0 32px; scroll-margin-top: 96px; }
-.deck {
+.cover__deck {
   position: relative;
   display: block;
-  font: inherit;
-  text-transform: uppercase;
-  text-align: left;
-  width: 58%;
+  width: 100%;
   aspect-ratio: 1;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
+  transition: width 0.65s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.sleeve {
+.cover.is-active .cover__deck { width: 60%; }
+
+.cover__art {
   position: absolute;
   inset: 0;
   z-index: 2;
-  box-shadow: 14px 0 28px rgba(0, 0, 0, 0.75), 0 18px 40px rgba(0, 0, 0, 0.6);
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  box-shadow: 8px 0 18px rgba(0, 0, 0, 0.7), 0 10px 24px rgba(0, 0, 0, 0.55);
+  transition: outline-color 0.25s;
 }
-.sleeve.is-blank { padding: 14px; font-size: 0.8rem; }
-.record {
+.cover:active .cover__deck { transform: scale(0.98); }
+.cover[aria-checked="true"] .cover__art { outline-color: var(--text); }
+
+.cover__record {
   position: absolute;
-  top: 2%;
-  left: 2%;
+  top: 3%;
+  left: 3%;
   z-index: 1;
-  width: 96%;
-  height: 96%;
+  width: 94%;
+  height: 94%;
   transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.deck.is-out .record { transform: translateX(74%); }
+.cover.is-active .cover__record { transform: translateX(68%); transition-delay: 0.12s; }
+
 .record__disc {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   background:
     conic-gradient(from 30deg, transparent 0 8%, rgba(255, 255, 255, 0.09) 12%, transparent 18% 50%, rgba(255, 255, 255, 0.07) 62%, transparent 68%),
-    repeating-radial-gradient(circle, #0b0b0b 0 1.5px, #161616 1.5px 3px);
-  box-shadow: 0 0 0 1px #222, 0 10px 30px rgba(0, 0, 0, 0.7);
+    repeating-radial-gradient(circle, #0b0b0b 0 1px, #161616 1px 2px);
+  box-shadow: 0 0 0 1px #222, 0 8px 22px rgba(0, 0, 0, 0.7);
 }
 .record__label {
   position: absolute;
@@ -398,41 +374,58 @@ em, i { font-style: normal; }
   width: 38%;
   height: 38%;
   border-radius: 50%;
-  box-shadow: 0 0 0 3px #0b0b0b;
+  box-shadow: 0 0 0 2px #0b0b0b;
 }
-.record__label.is-blank { padding: 0; background-size: 46% auto; background-position: center; font-size: 0; }
 .record__label::after {
   /* the hole in the middle */
   content: "";
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 9%;
-  height: 9%;
-  margin: -4.5% 0 0 -4.5%;
+  width: 10%;
+  height: 10%;
+  margin: -5% 0 0 -5%;
   border-radius: 50%;
   background: var(--bg);
 }
-.deck.is-spinning .record__disc { animation: spin 1.8s linear infinite; }
-.deck.is-spinning.is-paused .record__disc { animation-play-state: paused; }
+.cover.is-spinning .record__disc { animation: spin 1.8s linear infinite; }
+.cover.is-spinning.is-paused .record__disc { animation-play-state: paused; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.player__info { margin-top: 22px; }
-.player__artist { margin: 0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.22em; color: var(--muted); }
-.player__title { margin: 2px 0 0; font-size: clamp(1.4rem, 6vw, 2rem); font-weight: 800; line-height: 1.1; }
-.player__bar { height: 2px; margin: 16px 0 10px; background: var(--line); overflow: hidden; }
-.player__bar i { display: block; height: 100%; background: var(--text); transform-origin: left; transform: scaleX(0); }
-.player__row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
+.cover__pick {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 3;
+  padding: 4px 6px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.46rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.2s, transform 0.2s;
 }
-.player__toggle {
+.cover[aria-checked="true"] .cover__pick { opacity: 1; transform: none; }
+
+.cover__title, .cover__artist {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cover__title { margin-top: 10px; font-size: 0.72rem; font-weight: 800; line-height: 1.3; }
+.cover__artist { font-size: 0.56rem; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
+
+/* Now playing, under the sleeves */
+.now { margin: 30px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+.now__row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.now__text { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; }
+.now__text span { color: var(--muted); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.16em; margin-right: 10px; }
+.now__text b { font-weight: 800; }
+.now__toggle {
+  flex: none;
   padding: 6px 0;
   border: 0;
   background: none;
@@ -442,10 +435,13 @@ em, i { font-style: normal; }
   text-transform: uppercase;
   cursor: pointer;
 }
+.now__bar { height: 2px; margin: 12px 0 8px; background: var(--line); overflow: hidden; }
+.now__bar i { display: block; height: 100%; background: var(--text); transform-origin: left; transform: scaleX(0); }
+.now__time { margin: 0; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 @media (prefers-reduced-motion: reduce) {
-  .deck.is-spinning .record__disc { animation: none; }
-  .record { transition: none; }
+  .cover, .cover__deck, .cover__record { transition: none; }
+  .cover.is-spinning .record__disc { animation: none; }
 }
 
 /* Submit bar: sticks to the bottom of the screen while you scroll */

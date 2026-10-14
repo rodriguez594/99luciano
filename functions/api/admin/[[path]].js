@@ -117,6 +117,12 @@ export const onRequest = handle(async (context) => {
       await env.FILES.put(key, data, { metadata: { type } });
       const col = kind === 'cover' ? 'cover_key' : 'snippet_key';
       await DB.prepare(`UPDATE songs SET ${col} = ? WHERE id = ?`).bind(key, s.id).run();
+      if (kind === 'snippet') {
+        // Where the clip was cut from, so /management can show it
+        const start = Math.max(0, Number(q('start')) || 0);
+        const length = [15, 30, 45, 60].includes(Number(q('length'))) ? Number(q('length')) : null;
+        await DB.prepare('UPDATE songs SET clip_start = ?, clip_length = ? WHERE id = ?').bind(start, length, s.id).run();
+      }
       await removeFiles(env, [s[col]]);
       return json((await songsOut(DB, s.campaign)).find((x) => x.id === s.id));
     }
@@ -223,6 +229,7 @@ async function songsOut(DB, campaign) {
   ).bind(campaign).all();
   return r.results.map((s) => ({
     id: s.id, title: s.title, artist: s.artist, position: s.position, votes: s.votes,
+    clip_start: s.clip_start, clip_length: s.clip_length,
     cover_url: fileUrl(s.cover_key), snippet_url: fileUrl(s.snippet_key),
   }));
 }

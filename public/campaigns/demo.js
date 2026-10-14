@@ -23,9 +23,9 @@
   try { open = open && sessionStorage.getItem('luciano:demo-open') !== '0'; } catch (e) {}
   var followers = 87;
   var songs = [
-    { id: 'demo-1', title: 'Natlys', artist: '99 LUCIANO', cover: 'demo/cover-1.jpg', file: 'demo/snippet-1.wav' },
-    { id: 'demo-2', title: 'Rødt lys', artist: '99 LUCIANO', cover: 'demo/cover-2.jpg', file: 'demo/snippet-2.wav' },
-    { id: 'demo-3', title: 'Sommer i byen', artist: '99 LUCIANO', cover: 'demo/cover-3.jpg', file: 'demo/snippet-3.wav' }
+    { id: 'demo-1', title: 'Natlys', artist: '99 LUCIANO', cover: 'demo/cover-1.jpg', file: 'demo/snippet-1.wav', length: 15 },
+    { id: 'demo-2', title: 'Rødt lys', artist: '99 LUCIANO', cover: 'demo/cover-2.jpg', file: 'demo/snippet-2.wav', length: 15 },
+    { id: 'demo-3', title: 'Sommer i byen', artist: '99 LUCIANO', cover: null, file: 'demo/snippet-3.wav', length: 15 }
   ];
 
   function fakeStatus() {

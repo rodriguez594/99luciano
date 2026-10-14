@@ -66,7 +66,7 @@
       <!-- Songs -->
       <section class="m-sec" id="sange">
         <p class="label">Sange</p>
-        <p class="step__note">Et nummer vises på siden, når det har en titel og et klip. Covers bliver beskåret til kvadrat.</p>
+        <p class="step__note">Vælg hele sangen, så vælger du selv længden og hvilket stykke der skal høres. Kun klippet bliver lagt op, aldrig hele sangen. Et nummer vises på siden, når det har en titel og et klip. Uden cover får det et hvidt cover med en plade.</p>
         <ol class="m-songs" id="songs"></ol>
         <button class="btn btn--solid btn--wide" id="add-song">+ Tilføj sang</button>
       </section>
@@ -127,8 +127,23 @@
         <input class="m-in m-title" type="text" maxlength="80" placeholder="Titel">
         <input class="m-in m-artist" type="text" maxlength="60">
         <div class="m-audio"></div>
+        <div class="m-clip" hidden>
+          <div class="m-clip__lens" role="group" aria-label="Længde">
+            <button type="button" class="m-chip" data-len="15">15 sek</button>
+            <button type="button" class="m-chip" data-len="30">30 sek</button>
+            <button type="button" class="m-chip" data-len="45">45 sek</button>
+            <button type="button" class="m-chip" data-len="60">60 sek</button>
+          </div>
+          <div class="m-clip__wave"><canvas></canvas><div class="m-clip__win"><i></i></div><div class="m-clip__head"></div></div>
+          <p class="m-clip__info"></p>
+          <div class="m-song__actions">
+            <button type="button" class="m-mini m-clip-play">Lyt</button>
+            <button type="button" class="m-mini m-mini--solid m-clip-save">Gem klip</button>
+            <button type="button" class="m-mini m-clip-cancel">Annuller</button>
+          </div>
+        </div>
         <div class="m-song__actions">
-          <label class="m-mini">Upload klip<input type="file" accept="audio/*" class="m-snippet-input"></label>
+          <label class="m-mini">Vælg sang<input type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.flac" class="m-snippet-input"></label>
           <button type="button" class="m-mini m-up" aria-label="Flyt op">↑</button>
           <button type="button" class="m-mini m-down" aria-label="Flyt ned">↓</button>
           <button type="button" class="m-mini m-del">Slet</button>
@@ -140,6 +155,7 @@
 
   <script src="../main.js?v=dev"></script>
   <script src="../campaigns/config.js?v=dev"></script>
+  <script src="vendor/lame.min.js?v=dev"></script>
   <script src="management.js?v=dev"></script>
 </body>
 </html>

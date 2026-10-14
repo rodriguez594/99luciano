@@ -2,8 +2,7 @@
 // snippets) is edited at /management and stored in Cloudflare D1.
 var CAMPAIGN = {
   id: 'next-single-2026',
-  instagram: '99luciano0',
-  snippetSeconds: 30        // snippets stop after this many seconds
+  instagram: '99luciano0'
 };
 
 // Talks to the site's own server code (functions/api). Errors carry .noApi when the page

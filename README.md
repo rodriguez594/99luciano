@@ -59,14 +59,15 @@ Now 99luciano.dk/management asks for your email, sends a code, and lets you in. 
 ## How the giveaway works
 
 - New giveaways **start open**. The follower lock is optional: set "Følgere før den åbner" at /management and use "Åbn giveaway nu" to open it by hand.
-- People follow, type their Instagram username, tap a cover (the record slides out and the snippet plays) and vote. The same username twice is one vote.
+- People follow, type their Instagram username and tap a cover: it grows, the other two in the row move aside, and the record slides out and spins while the clip plays. Then they vote. The same username twice is one vote.
 - **Flagging instead of blocking:** nobody is turned away. Each vote stores a random device id (cookie + local storage) and a hash of the network (the IP itself isn't stored). Votes that share one are grouped under **Flag** at /management, and a group counts as **one entry** in the draw. If someone in a group is clearly a different person (a family on the same wifi), press "Egen person".
 - **Winner:** download your follower list from Instagram (Settings → Accounts Centre → Your information and permissions → Download your information → Followers and following, JSON), upload `followers_1.json` under Vinder, then press "Træk". It picks among entries from people who follow, and tells you if the winner was flagged with anyone.
 
 ## At /management
 
 - **Giveaway:** prize, artist name, end date, follower goal, "Luk for stemmer nu".
-- **Sange:** add songs, title and artist (empty = the giveaway's artist), upload a cover (cropped to a square and shrunk automatically) and a snippet (max 15 MB), reorder. A song shows up once it has a title and a snippet. A song with votes can't be deleted.
+- **Sange:** add songs, set title and artist (empty = the giveaway's artist), and upload a cover (cropped to a square and shrunk automatically). No cover means a white sleeve with a black record. Reorder with the arrows. A song shows up once it has a title and a clip, and a song with votes can't be deleted.
+- **Clips:** press "Vælg sang" and pick the whole song (MP3, WAV, M4A…). Choose 15, 30, 45 or 60 seconds, drag the window on the waveform to the part you want, press "Lyt" to hear it, then "Gem klip". The clip is cut and turned into an MP3 in your browser, with a short fade in and out. Only the clip is uploaded, never the whole song.
 - **Stemmer / Flag / Besked / Vinder:** votes per song (and people, when some are flagged), flagged groups, notification sign-ups, follower check and the draw. Votes and sign-ups download as CSV.
 
 For the next giveaway, change `CAMPAIGN.id` in `public/campaigns/config.js` to a new id. Votes, songs and sign-ups start from zero.
@@ -82,3 +83,7 @@ npm install
 cp .dev.vars.example .dev.vars   # lets /management work on localhost without Access
 npm run dev                      # http://localhost:8788, with a local D1 and KV
 ```
+
+## Credits
+
+Clips are encoded with [lamejs](https://github.com/zhuker/lamejs), a JavaScript port of [LAME](https://lame.sourceforge.io) (LGPL), shipped unmodified in `public/management/vendor/`.

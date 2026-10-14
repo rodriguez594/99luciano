@@ -12,7 +12,7 @@ export const onRequestGet = handle(async ({ request, env, waitUntil }) => {
   const [ig, songs] = await Promise.all([
     DB.prepare('SELECT followers FROM ig WHERE id = 1').first(),
     DB.prepare(
-      `SELECT id, title, artist, cover_key, snippet_key FROM songs
+      `SELECT id, title, artist, cover_key, snippet_key, clip_length FROM songs
        WHERE campaign = ? AND snippet_key IS NOT NULL AND title <> ''
        ORDER BY position, created_at`
     ).bind(c.id).all(),
@@ -32,6 +32,7 @@ export const onRequestGet = handle(async ({ request, env, waitUntil }) => {
       artist: s.artist || c.artist,
       cover: fileUrl(s.cover_key),
       file: fileUrl(s.snippet_key),
+      length: s.clip_length || null,
     })),
   });
 });
