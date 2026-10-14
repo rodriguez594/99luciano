@@ -270,8 +270,15 @@
       down.addEventListener('click', function () { move(i, 1); });
 
       li.querySelector('.m-del').addEventListener('click', function () {
-        if (!confirm('Slet "' + (s.title || 'sang') + '"?')) return;
-        admin('DELETE', 'songs/' + s.id).then(loadSongs, function (e) { state.textContent = e.message; });
+        var name = s.title || 'sang';
+        if (!confirm(s.votes
+          ? 'Slet "' + name + '" og dens ' + s.votes + (s.votes === 1 ? ' stemme' : ' stemmer') + '? De, der stemte på den, kan stemme igen.'
+          : 'Slet "' + name + '"?')) return;
+        admin('DELETE', 'songs/' + s.id).then(function () {
+          loadSongs();
+          loadResults();
+          loadFlags();
+        }, function (e) { state.textContent = e.message; });
       });
 
       list.appendChild(li);

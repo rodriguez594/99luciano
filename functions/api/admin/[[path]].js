@@ -90,9 +90,11 @@ export const onRequest = handle(async (context) => {
 
     case 'DELETE songs/:id': {
       const s = await getSong(DB, id);
-      const v = await DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE song = ?').bind(s.id).first();
-      if (v.n > 0) throw new HttpError(409, 'Har stemmer, kan ikke slettes');
-      await DB.prepare('DELETE FROM songs WHERE id = ?').bind(s.id).run();
+      // The song's votes go with it, so those voters can vote again on another song
+      await DB.batch([
+        DB.prepare('DELETE FROM votes WHERE song = ?').bind(s.id),
+        DB.prepare('DELETE FROM songs WHERE id = ?').bind(s.id),
+      ]);
       await removeFiles(env, [s.cover_key, s.snippet_key]);
       return json({ ok: true });
     }
