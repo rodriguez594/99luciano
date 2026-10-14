@@ -113,7 +113,7 @@
       if (res.error) { $('settings-note').textContent = err(res.error); return; }
       if (!res.data) {
         // First time: create the giveaway with the defaults
-        return sb.from('luciano_campaigns').insert({ id: CAMPAIGN.id }).select().single().then(function (r) {
+        return sb.from('luciano_campaigns').insert({ id: CAMPAIGN.id, unlocked_at: new Date().toISOString() }).select().single().then(function (r) {
           if (r.error) { $('settings-note').textContent = err(r.error); return; }
           campaign = r.data;
           fillSettings();

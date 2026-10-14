@@ -4,8 +4,8 @@
 (function () {
   if (SUPABASE.url && SUPABASE.anonKey && !/[?&]demo\b/.test(location.search)) return;
 
-  var open = /[?&]open\b/.test(location.search);
-  try { open = open || sessionStorage.getItem('luciano:demo-open') === '1'; } catch (e) {}
+  var open = !/[?&]locked\b/.test(location.search);
+  try { open = open && sessionStorage.getItem('luciano:demo-open') !== '0'; } catch (e) {}
   var followers = 87;
   var songs = [
     { id: 'demo-1', title: 'Natlys', artist: '99 LUCIANO', cover: 'demo/cover-1.jpg', file: 'demo/snippet-1.wav' },

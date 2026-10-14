@@ -604,8 +604,9 @@ to authenticated;
 
 -- The giveaway. Its id must match CAMPAIGN.id in campaigns/config.js.
 -- Prize, end date, goal and songs are edited at /management after that.
-insert into public.luciano_campaigns (id, ends_at)
-values ('next-single-2026', '2026-11-15 23:59 Europe/Copenhagen')
+-- It starts open (unlocked_at = now). To lock it behind a follower goal instead, set unlocked_at to null.
+insert into public.luciano_campaigns (id, ends_at, unlocked_at)
+values ('next-single-2026', '2026-11-15 23:59 Europe/Copenhagen', now())
 on conflict (id) do nothing;
 
 -- Who can log in at /management (lowercase email). Add a line per person.

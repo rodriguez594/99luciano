@@ -13,7 +13,7 @@ The repo is public (needed for free GitHub Pages). Songs, covers and snippets ar
 
 ## How the giveaway works
 
-1. **Locked** until @99luciano0 has enough followers (150 by default). The page shows the count, updated every 30 seconds, and two things:
+1. **Locked** (optional, off by default since the account already has 150+ followers) until @99luciano0 has enough followers. The page shows the count, updated every 30 seconds, and two things:
    - sign up with an email or phone number to get a message when it opens
    - a button to share the Instagram profile
 2. **Open** once the goal is reached. It stays open even if followers drop again. People follow, enter their username, tap a cover to hear the snippet, and vote.
