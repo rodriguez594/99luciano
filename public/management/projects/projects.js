@@ -260,6 +260,12 @@
     });
     body.appendChild(title);
     body.appendChild(el('p', 'm-track__meta', songMeta(s)));
+    var playable = s.versions.filter(function (v) { return v.link; })[0];
+    if (playable) {
+      var pl = playLink(playable.link, '▶ Afspil ' + playable.label);
+      pl.classList.add('m-mini--solid', 'm-track__play');
+      body.appendChild(pl);
+    }
 
     var det = el('details', 'm-track__more');
     det.open = !!opened[s.id];
@@ -281,10 +287,18 @@
       li.appendChild(label);
       var info = el('span', 'm-version__info');
       info.appendChild(el('b', null, Admin.date(v.file_date) + (i === 0 ? ' · seneste' : '')));
-      info.appendChild(el('small', null, v.file_name + (v.file_size ? ' · ' + size(v.file_size) : '')));
+      info.appendChild(el('small', null, [v.file_name, v.file_size ? size(v.file_size) : '', v.link ? host(v.link) : 'intet link'].filter(Boolean).join(' · ')));
       li.appendChild(info);
-      li.appendChild(button('×', function () {
-        if (!confirm('Fjern ' + v.label + ' (' + v.file_name + ') fra trackeren?')) return;
+      var acts = el('span', 'm-version__acts');
+      if (v.link) acts.appendChild(playLink(v.link, '▶'));
+      acts.appendChild(button(v.link ? 'Link' : '+ Link', function () {
+        var u = prompt('Link til ' + v.label + ' (Dropbox, Google Drive …). Tomt = fjern linket.', v.link || '');
+        if (u === null) return;
+        api('PATCH', 'versions/' + encodeURIComponent(v.id), { link: u.trim() }).then(setProject, fail);
+      }, 'Link til versionen'));
+      li.appendChild(acts);
+      acts.appendChild(button('×', function () {
+        if (!confirm('Fjern ' + v.label + (v.file_name ? ' (' + v.file_name + ')' : '') + ' fra trackeren?')) return;
         api('DELETE', 'versions/' + encodeURIComponent(v.id)).then(setProject, fail);
       }, 'Fjern version'));
       list.appendChild(li);
@@ -389,45 +403,57 @@
     });
   });
 
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
+  // Opens the add form: name (for a new song), version, link and date. A file can fill it in.
   function chooseFiles(m, song) {
     mode = m;
     target = song;
-    var input = $('audio-input');
-    input.value = '';
-    input.click();
+    pending = [{ title: '', label: '', date: today(), link: '', file_name: '', file_type: null, file_size: null }];
+    openReview([]);
+    var first = $('review-list').querySelector('input');
+    if (first) setTimeout(function () { first.focus(); }, 50);
   }
 
-  $('audio-input').addEventListener('change', function () {
+  $('review-files').addEventListener('change', function () {
     var files = Array.prototype.slice.call(this.files || []);
     this.value = '';
     if (!files.length) return;
+    var keepLink = pending.length === 1 ? pending[0].link : '';
     var skipped = files.filter(function (f) { return !SongFile.isAudio(f); });
-    pending = files.filter(SongFile.isAudio).map(function (f) {
+    var read = files.filter(SongFile.isAudio).map(function (f) {
       var r = SongFile.parse(f.name, f.lastModified);
-      return { title: r.title, label: r.label || '', date: r.date, file_name: f.name, file_type: f.type || r.ext, file_size: f.size };
+      return { title: r.title, label: r.label || '', date: r.date, link: '', file_name: f.name, file_type: f.type || r.ext, file_size: f.size };
     });
-    if (!pending.length) {
-      note('Ingen lydfiler valgt' + (skipped.length ? ' (' + skipped.map(function (f) { return f.name; }).join(', ') + ' er ikke lyd).' : '.'));
+    if (!read.length) {
+      $('review-note').textContent = 'Det var ikke en lydfil' + (skipped.length ? ' (' + skipped.map(function (f) { return f.name; }).join(', ') + ').' : '.');
       return;
     }
+    if (read.length === 1) read[0].link = keepLink;
+    pending = read;
     openReview(skipped);
   });
 
   function openReview(skipped) {
     $('review-title').textContent = mode === 'existing' ? 'Ny version af ' + target.title : 'Ny sang';
-    $('review-note').textContent = 'Tjek navn, version og dato. Tom version bliver næste nummer.' +
+    $('review-note').textContent = 'Tom version bliver næste nummer. Linket kan være fra Dropbox, Google Drive eller hvor sangen ellers ligger.' +
       (skipped.length ? ' Sprunget over (ikke lyd): ' + skipped.map(function (f) { return f.name; }).join(', ') + '.' : '');
-    $('review-ok').textContent = pending.length === 1 ? 'Tilføj til tracker' : 'Tilføj ' + pending.length + ' filer';
+    $('review-ok').textContent = pending.length === 1 ? 'Tilføj' : 'Tilføj ' + pending.length + ' sange';
     var list = $('review-list');
     list.innerHTML = '';
     pending.forEach(function (f) {
       var row = el('div', 'm-review__row');
-      row.appendChild(el('p', 'm-review__file', f.file_name));
+      if (f.file_name) row.appendChild(el('p', 'm-review__file', f.file_name));
       var fields = el('div', 'm-review__fields');
       var hint = el('small', 'm-review__hint');
       if (mode === 'new') {
         var t = field('Sang', 'text', f.title, function (v) { f.title = v; match(); });
         t.querySelector('input').maxLength = 80;
+        t.querySelector('input').placeholder = 'Fx Natlys';
+        t.querySelector('input').required = true;
         t.classList.add('m-review__title');
         fields.appendChild(t);
       }
@@ -436,6 +462,11 @@
       l.querySelector('input').maxLength = 40;
       fields.appendChild(l);
       fields.appendChild(field('Dato', 'date', f.date || '', function (v) { f.date = v; }));
+      var lk = field('Link (Dropbox, Google Drive …)', 'url', f.link || '', function (v) { f.link = v; });
+      lk.querySelector('input').placeholder = 'https://…';
+      lk.querySelector('input').inputMode = 'url';
+      lk.classList.add('m-review__title');
+      fields.appendChild(lk);
       row.appendChild(fields);
       row.appendChild(hint);
       // A title the project already has becomes a new version of that song
@@ -469,9 +500,11 @@
         file_name: f.file_name,
         file_type: f.file_type,
         file_size: f.file_size,
-        file_date: f.date ? f.date + 'T12:00:00Z' : null
+        file_date: f.date ? f.date + 'T12:00:00Z' : null,
+        link: (f.link || '').trim()
       };
     });
+    if (mode === 'new' && files.some(function (f) { return !f.title; })) { note('Skriv sangens navn.'); return; }
     pending = [];
     note('Tilføjer…');
     api('POST', 'import', { project: project.id, track: mode === 'existing' ? target.id : null, files: files }).then(function (r) {
@@ -501,6 +534,23 @@
     if (label) b.setAttribute('aria-label', label);
     b.addEventListener('click', onClick);
     return b;
+  }
+
+  // ▶ opens the song's link (Dropbox, Google Drive …) in a new tab / the app
+  function playLink(url, text) {
+    var a = el('a', 'm-mini', text);
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.title = 'Åbn ' + host(url);
+    return a;
+  }
+
+  function host(url) {
+    try {
+      var h = new URL(url).hostname.replace(/^www\./, '');
+      return /dropbox/.test(h) ? 'Dropbox' : /drive\.google|docs\.google/.test(h) ? 'Google Drive' : /icloud/.test(h) ? 'iCloud' : /wetransfer/.test(h) ? 'WeTransfer' : /soundcloud/.test(h) ? 'SoundCloud' : h;
+    } catch (e) { return 'link'; }
   }
 
   function size(bytes) {

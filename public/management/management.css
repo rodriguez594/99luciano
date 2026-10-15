@@ -494,3 +494,14 @@ a.m-card:hover { border-color: var(--text); }
 .m-signup__who a:hover { text-decoration: underline; }
 .m-signup__who.is-unknown { font-size: 0.7rem; font-weight: 700; color: var(--muted); }
 .m-signup .m-voter__song { text-transform: none; overflow-wrap: anywhere; }
+
+/* Song links */
+.m-version { grid-template-columns: 110px 1fr; }
+.m-version__acts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.m-track__play { justify-self: start; margin-top: 8px; }
+.m-review__pick { margin: 4px 0 6px; }
+.m-review__row:first-child { border-top: 0; }
+.m-sheet input[type="url"] { text-transform: none; }
+.m-review__pick { position: relative; display: flex; flex-direction: column; gap: 4px; margin: 6px 0 4px; overflow: hidden; cursor: pointer; }
+.m-review__pick small { font-size: 0.55rem; letter-spacing: 0.12em; color: var(--muted); }
+.m-review__pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }

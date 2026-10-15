@@ -92,13 +92,13 @@
             <div class="m-plus-wrap">
               <button type="button" class="m-plus" id="plus" aria-haspopup="menu" aria-expanded="false" aria-label="Tilføj">+</button>
               <div class="m-menu" id="plus-menu" role="menu" hidden>
-                <button type="button" role="menuitem" data-mode="new">Tilføj ny sang<small>Hver fil bliver en sang</small></button>
-                <button type="button" role="menuitem" data-mode="existing">Tilføj eksisterende sang<small>Filen bliver en ny version</small></button>
+                <button type="button" role="menuitem" data-mode="new">Tilføj ny sang<small>Navn, version og link</small></button>
+                <button type="button" role="menuitem" data-mode="existing">Tilføj eksisterende sang<small>Ny version af en sang</small></button>
               </div>
             </div>
           </div>
-          <p class="step__note">Vælg lydfiler (alle formater). Kun navn, version og dato bliver læst, selve lyden bliver aldrig lagt op.
-            Skriv versionen i filnavnet, fx <code>Natlys v3.wav</code>, <code>Natlys_master.mp3</code> eller <code>Natlys (version 2).m4a</code>.</p>
+          <p class="step__note">Tryk på + og skriv sangens navn og version. Sæt et link til sangen på Dropbox eller Google Drive på, så åbner "Afspil" linket. Sangene bliver aldrig lagt op her.
+            Du kan også vælge en lydfil, så bliver navn, version og dato læst fra filnavnet, fx <code>Natlys v3.wav</code>.</p>
           <p class="step__note" id="tracker-note" aria-live="polite"></p>
           <div class="m-view" role="group" aria-label="Visning">
             <button type="button" class="m-chip is-on" data-view="list">Liste</button>
@@ -114,9 +114,6 @@
     </div>
   </main>
 
-  <input type="file" id="audio-input" multiple hidden
-    accept="audio/*,.mp3,.wav,.wave,.aif,.aiff,.aifc,.flac,.m4a,.aac,.alac,.ogg,.oga,.opus,.wma,.caf,.amr,.mid,.midi,.webm,.weba,.mp4,.3gp,.m4r,.dsf,.dff,.ape,.wv,.mka,.ac3,.au,.snd">
-
   <!-- Pick the song a new version belongs to -->
   <dialog class="m-sheet" id="pick">
     <form method="dialog">
@@ -131,6 +128,8 @@
     <form method="dialog" id="review-form">
       <p class="label" id="review-title">Tilføj</p>
       <p class="step__note" id="review-note"></p>
+      <label class="btn btn--wide m-review__pick">Vælg lydfil<small>læser navn, version og dato</small><input type="file" id="review-files" multiple
+        accept="audio/*,.mp3,.wav,.wave,.aif,.aiff,.aifc,.flac,.m4a,.aac,.alac,.ogg,.oga,.opus,.wma,.caf,.amr,.mid,.midi,.webm,.weba,.mp4,.3gp,.m4r,.dsf,.dff,.ape,.wv,.mka,.ac3,.au,.snd"></label>
       <div id="review-list" class="m-review"></div>
       <div class="m-sheet__actions">
         <button class="m-mini" value="cancel" formnovalidate>Annuller</button>

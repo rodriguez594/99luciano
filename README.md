@@ -81,7 +81,7 @@ Now 99luciano.dk/management asks for your email, sends a code, and lets you in. 
 ### Projekter
 
 - Create a project, then add **goals**: a number of songs, versions or songs with album art (these count themselves) or a manual count with − / +.
-- **Song tracker:** press **+** → "Tilføj ny sang" or "Tilføj eksisterende sang" (adds a new version), and pick audio files (any format, several at once). Only the file's name, the version and the date are read; the audio is never uploaded. The version comes from the file name (`Natlys v3.wav`, `Natlys_master.mp3`, `Natlys (version 2).m4a`), or the next number. The date comes from the file name (`2026-10-12`, `12.10.26`) or when the file was last saved. You can check and change all three before adding. A new-song title the project already has becomes a new version of that song.
+- **Song tracker:** press **+** → "Tilføj ny sang" or "Tilføj eksisterende sang" (a new version). A form asks for the name, version, date and a **link** (Dropbox, Google Drive …); "▶ Afspil" opens that link, so the songs are never on the site. "Vælg lydfil" fills in the form from a file's name instead (`Natlys v3.wav`, `Natlys_master.mp3`, `Natlys (version 2).m4a`; dates like `2026-10-12`), reading only the name, never the audio. Several files at once give one row each. A new-song title the project already has becomes a new version of that song. Links can be added or changed later on each version.
 - **Album art:** tap the cover on a song. Every cover is kept; pick which one shows under "Versioner og covers". "Covers" switches to a grid of all album art.
 
 For the next giveaway, change `CAMPAIGN.id` in `public/giveaway/config.js` to a new id. Votes, songs and sign-ups start from zero.
