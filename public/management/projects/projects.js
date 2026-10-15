@@ -7,11 +7,12 @@
   var projectId = new URLSearchParams(location.search).get('id');
   var project = null;
   var opened = {};      // song id → details open (survives redrawing)
-  var view = 'list';    // 'list' | 'grid'
+  var view = 'grid';    // 'grid' (square covers, 3 per row) | 'list'
+  var sheetSong = null; // song shown in the song sheet
   var mode = null;      // upload: 'new' or 'existing'
   var target = null;    // upload: the song new versions go to
   var pending = [];     // files read, waiting for the review sheet
-  try { view = localStorage.getItem('luciano:tracker-view') || 'list'; } catch (e) {}
+  try { view = localStorage.getItem('luciano:tracker-view2') || 'grid'; } catch (e) {}
 
   // ---------- all projects ----------
 
@@ -20,6 +21,11 @@
     api('GET', 'projects').then(function (list) {
       var active = list.filter(function (p) { return p.status !== 'done'; });
       var done = list.filter(function (p) { return p.status === 'done'; });
+      var sum = function (f) { return list.reduce(function (a, p) { return a + f(p); }, 0); };
+      $('all-projects').textContent = active.length;
+      $('all-songs').textContent = sum(function (p) { return p.counts.songs; });
+      $('all-versions').textContent = sum(function (p) { return p.counts.versions; });
+      $('all-goals').textContent = sum(function (p) { return p.goals.filter(function (g) { return g.done; }).length; }) + '/' + sum(function (p) { return p.goals.length; });
       var box = $('projects');
       box.innerHTML = '';
       if (!list.length) box.appendChild(el('p', 'step__note', 'Ingen projekter endnu. Giv dit første et navn herover.'));
@@ -30,8 +36,17 @@
     }, function (e) { $('list-note').textContent = e.message; });
   }
 
+  $('new-title').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    e.preventDefault();
+    createProject();
+  });
   $('new-project').addEventListener('submit', function (e) {
     e.preventDefault();
+    createProject();
+  });
+  function createProject() {
+    if ($('new-btn').disabled) return;
     var title = $('new-title').value.trim();
     if (!title) { $('new-title').focus(); return; }
     $('new-btn').disabled = true;
@@ -41,12 +56,14 @@
       $('new-btn').disabled = false;
       $('list-note').textContent = e.message;
     });
-  });
+  }
 
   // ---------- one project ----------
 
+  var allProjects = [];
   function loadProject() {
     $('detail-view').hidden = false;
+    api('GET', 'projects').then(function (list) { allProjects = list; if (project) render(); }, function () {});
     $('title').textContent = 'Projekt';
     return api('GET', 'projects/' + encodeURIComponent(projectId)).then(function (p) {
       setProject(p);
@@ -171,7 +188,20 @@
 
   // ---------- song tracker ----------
 
+  function renderOverview() {
+    var c = project.counts, done = project.goals.filter(function (g) { return g.done; }).length;
+    $('ov-songs').textContent = c.songs;
+    $('ov-versions').textContent = c.versions;
+    $('ov-art').textContent = c.art + '/' + c.songs;
+    $('ov-goals').textContent = done + '/' + project.goals.length;
+    var missing = [];
+    if (c.songs - c.art) missing.push((c.songs - c.art) + (c.songs - c.art === 1 ? ' sang mangler cover' : ' sange mangler cover'));
+    if (c.songs - (c.linked || 0)) missing.push((c.songs - c.linked) + (c.songs - c.linked === 1 ? ' sang mangler link' : ' sange mangler link'));
+    $('ov-note').textContent = missing.join(' · ');
+  }
+
   function renderSongs() {
+    renderOverview();
     var songs = project.songs;
     $('tracker-count').textContent = songs.length + (songs.length === 1 ? ' sang' : ' sange') + ' · ' +
       project.counts.versions + (project.counts.versions === 1 ? ' version' : ' versioner');
@@ -184,12 +214,27 @@
       return;
     }
     songs.forEach(function (s) { box.appendChild(view === 'grid' ? songTile(s) : songCard(s)); });
+    $('drag-hint').hidden = view !== 'grid' || songs.length < 2;
+    // Keep the open song sheet up to date
+    if (sheetSong && $('song-sheet').open) {
+      var cur = songs.filter(function (x) { return x.id === sheetSong; })[0];
+      if (cur) fillSheet(cur); else $('song-sheet').close();
+    }
   }
+
+  function fillSheet(s) {
+    sheetSong = s.id;
+    opened[s.id] = true;
+    var body = $('song-sheet-body');
+    body.innerHTML = '';
+    body.appendChild(songCard(s));
+  }
+  $('song-sheet').addEventListener('close', function () { sheetSong = null; });
 
   document.querySelectorAll('.m-view .m-chip').forEach(function (c) {
     c.addEventListener('click', function () {
       view = c.dataset.view;
-      try { localStorage.setItem('luciano:tracker-view', view); } catch (e) {}
+      try { localStorage.setItem('luciano:tracker-view2', view); } catch (e) {}
       renderSongs();
     });
   });
@@ -225,23 +270,139 @@
   }
 
   // Covers view: a grid of album art; tap one to open it in the list
+  // A square tile: the cover with the title on it. Tap opens the song; drag moves it.
   function songTile(s) {
-    var tile = el('button', 'm-tile');
+    var tile = el('button', 'm-tile' + (s.art_url ? '' : ' is-blank'));
     tile.type = 'button';
-    var art = el('span', 'm-tile__art art' + (s.art_url ? '' : ' is-blank'));
-    if (s.art_url) art.style.backgroundImage = 'url("' + s.art_url + '")';
-    tile.appendChild(art);
-    tile.appendChild(el('b', null, s.title));
+    tile.dataset.id = s.id;
+    if (s.art_url) tile.style.backgroundImage = 'url("' + s.art_url + '")';
+    var cap = el('span', 'm-tile__cap');
+    cap.appendChild(el('b', null, s.title));
     var v = latest(s);
-    tile.appendChild(el('small', null, v ? v.label + ' · ' + Admin.date(v.file_date) : 'Ingen versioner'));
+    cap.appendChild(el('small', null, v ? v.label + ' · ' + Admin.date(v.file_date) : 'Ingen versioner'));
+    tile.appendChild(cap);
+    var playable = s.versions.filter(function (x) { return x.link; })[0];
+    if (playable) {
+      var pl = playLink(playable.link, '▶');
+      pl.className = 'm-tile__play';
+      pl.setAttribute('aria-label', 'Afspil ' + s.title + ' ' + playable.label);
+      pl.addEventListener('click', function (e) { e.stopPropagation(); });
+      tile.appendChild(pl);
+    }
     tile.addEventListener('click', function () {
-      view = 'list';
-      opened[s.id] = true;
-      renderSongs();
-      document.getElementById('song-' + s.id).scrollIntoView({ block: 'center' });
+      if (justDragged) return;
+      fillSheet(s);
+      $('song-sheet').showModal();
     });
     return tile;
   }
+
+  // ---------- drag and drop: reorder the covers ----------
+
+  var justDragged = false;
+  (function sortable(box) {
+    var drag = null;
+
+    box.addEventListener('pointerdown', function (e) {
+      var tile = e.target.closest('.m-tile');
+      if (!tile || e.target.closest('.m-tile__play') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      drag = { tile: tile, id: e.pointerId, x: e.clientX, y: e.clientY, active: false, touch: e.pointerType !== 'mouse', timer: 0 };
+      // On a phone: hold the finger still to pick it up, so scrolling still works
+      if (drag.touch) drag.timer = setTimeout(begin, 280);
+    });
+
+    function begin() {
+      if (!drag) return;
+      drag.active = true;
+      drag.tile.classList.add('is-dragging');
+      box.classList.add('is-sorting');
+      try { drag.tile.setPointerCapture(drag.id); } catch (e) {}
+      if (navigator.vibrate) navigator.vibrate(12);
+    }
+
+    box.addEventListener('pointermove', function (e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      var dist = Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y);
+      if (!drag.active) {
+        if (drag.touch) { if (dist > 10) end(false); return; }
+        if (dist < 6) return;
+        begin();
+      }
+      e.preventDefault();
+      // Move the tile to where the pointer is
+      drag.tile.style.visibility = 'hidden';
+      var under = document.elementFromPoint(e.clientX, e.clientY);
+      drag.tile.style.visibility = '';
+      var over = under && under.closest('.m-tile');
+      if (!over || over === drag.tile || over.parentNode !== box) return;
+      var tiles = Array.prototype.slice.call(box.children);
+      box.insertBefore(drag.tile, tiles.indexOf(over) > tiles.indexOf(drag.tile) ? over.nextSibling : over);
+    });
+
+    // Stop the page from scrolling while a tile is held
+    box.addEventListener('touchmove', function (e) { if (drag && drag.active) e.preventDefault(); }, { passive: false });
+    box.addEventListener('contextmenu', function (e) { if (drag) e.preventDefault(); });
+
+    function end(save) {
+      if (!drag) return;
+      clearTimeout(drag.timer);
+      var was = drag.active;
+      drag.tile.classList.remove('is-dragging');
+      box.classList.remove('is-sorting');
+      drag = null;
+      if (!was) return;
+      justDragged = true;
+      setTimeout(function () { justDragged = false; }, 50);
+      if (!save) return;
+      var ids = Array.prototype.map.call(box.querySelectorAll('.m-tile'), function (t) { return t.dataset.id; });
+      if (ids.join() === project.songs.map(function (x) { return x.id; }).join()) return;
+      api('POST', 'track-order', { project: project.id, ids: ids }).then(function (p) {
+        setProject(p);
+        note('Rækkefølgen er gemt.');
+      }, function (e) { fail(e); renderSongs(); });
+    }
+    box.addEventListener('pointerup', function (e) { if (drag && e.pointerId === drag.id) end(true); });
+    box.addEventListener('pointercancel', function (e) { if (drag && e.pointerId === drag.id) end(true); });
+  })($('songs'));
+
+  // ---------- drag and drop: audio files onto the tracker ----------
+
+  (function dropFiles(zone) {
+    var depth = 0;
+    var hasFiles = function (e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0; };
+    zone.addEventListener('dragenter', function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth++;
+      $('dropzone').hidden = false;
+      zone.classList.add('is-drop');
+    });
+    zone.addEventListener('dragover', function (e) { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+    zone.addEventListener('dragleave', function () {
+      if (--depth > 0) return;
+      depth = 0;
+      $('dropzone').hidden = true;
+      zone.classList.remove('is-drop');
+    });
+    zone.addEventListener('drop', function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0;
+      $('dropzone').hidden = true;
+      zone.classList.remove('is-drop');
+      var files = Array.prototype.slice.call(e.dataTransfer.files || []);
+      var skipped = files.filter(function (f) { return !SongFile.isAudio(f); });
+      var read = files.filter(SongFile.isAudio).map(function (f) {
+        var r = SongFile.parse(f.name, f.lastModified);
+        return { title: r.title, label: r.label || '', date: r.date, link: '', file_name: f.name, file_type: f.type || r.ext, file_size: f.size };
+      });
+      if (!read.length) { note('Det var ikke lydfiler.'); return; }
+      mode = 'new';
+      target = null;
+      pending = read;
+      openReview(skipped);
+    });
+  })($('tracker'));
 
   function songCard(s) {
     var card = el('article', 'm-track');
@@ -334,6 +495,33 @@
     });
     gallery.appendChild(artBox(s, 'm-gallery__add', '+ Cover'));
     det.appendChild(gallery);
+
+    // Move to another project
+    var moveRow = el('label', 'm-field m-move');
+    moveRow.appendChild(el('span', null, 'Flyt til projekt'));
+    var sel = el('select', 'm-select');
+    var here = el('option', null, project.title + ' (her)');
+    here.value = '';
+    sel.appendChild(here);
+    allProjects.filter(function (p) { return p.id !== project.id; }).forEach(function (p) {
+      var o = el('option', null, p.title + (p.status === 'done' ? ' (færdigt)' : ''));
+      o.value = p.id;
+      sel.appendChild(o);
+    });
+    sel.disabled = allProjects.length < 2;
+    if (sel.disabled) here.textContent = 'Opret et projekt mere for at flytte sange';
+    sel.addEventListener('change', function () {
+      if (!sel.value) return;
+      var to = allProjects.filter(function (p) { return p.id === sel.value; })[0];
+      if (!confirm('Flyt "' + s.title + '" med versioner og covers til ' + to.title + '?')) { sel.value = ''; return; }
+      api('PATCH', 'tracks/' + encodeURIComponent(s.id), { project: to.id }).then(function (p) {
+        if ($('song-sheet').open) $('song-sheet').close();
+        setProject(p);
+        note('"' + s.title + '" er flyttet til ' + to.title + '.');
+      }, fail);
+    });
+    moveRow.appendChild(sel);
+    det.appendChild(moveRow);
 
     var actions = el('div', 'm-song__actions');
     actions.appendChild(button('+ Ny version', function () { chooseFiles('existing', s); }, null, 'm-mini--solid'));

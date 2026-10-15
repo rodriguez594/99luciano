@@ -36,8 +36,14 @@
     <div id="panel" hidden>
       <!-- All projects -->
       <div id="list-view" hidden>
+        <div class="m-quick">
+          <a><b id="all-projects">0</b><span>Aktive projekter</span></a>
+          <a><b id="all-songs">0</b><span>Sange</span></a>
+          <a><b id="all-versions">0</b><span>Versioner</span></a>
+          <a><b id="all-goals">0</b><span>Mål nået</span></a>
+        </div>
         <form class="m-new" id="new-project">
-          <input class="m-in" id="new-title" type="text" maxlength="80" placeholder="Nyt projekt, fx Album 2027" aria-label="Projektnavn">
+          <input class="m-in" id="new-title" type="text" maxlength="80" placeholder="Nyt projekt, fx Album 2027" aria-label="Projektnavn" enterkeyhint="done">
           <button class="btn btn--solid" id="new-btn">Opret</button>
         </form>
         <p class="step__note" id="list-note" aria-live="polite"></p>
@@ -49,6 +55,15 @@
       <!-- One project -->
       <div id="detail-view" hidden>
         <a class="m-back" href="./">← Alle projekter</a>
+
+        <!-- Overview -->
+        <div class="m-quick m-quick--project">
+          <a href="#tracker"><b id="ov-songs">0</b><span>Sange</span></a>
+          <a href="#tracker"><b id="ov-versions">0</b><span>Versioner</span></a>
+          <a href="#tracker"><b id="ov-art">0</b><span>Med cover</span></a>
+          <a href="#goals-sec"><b id="ov-goals">0</b><span>Mål nået</span></a>
+        </div>
+        <p class="m-ov-note" id="ov-note"></p>
 
         <section class="m-sec m-sec--first">
           <input class="m-in m-ptitle" id="p-title" type="text" maxlength="80" aria-label="Projektnavn">
@@ -101,10 +116,12 @@
             Du kan også vælge en lydfil, så bliver navn, version og dato læst fra filnavnet, fx <code>Natlys v3.wav</code>.</p>
           <p class="step__note" id="tracker-note" aria-live="polite"></p>
           <div class="m-view" role="group" aria-label="Visning">
-            <button type="button" class="m-chip is-on" data-view="list">Liste</button>
-            <button type="button" class="m-chip" data-view="grid">Covers</button>
+            <button type="button" class="m-chip is-on" data-view="grid">Covers</button>
+            <button type="button" class="m-chip" data-view="list">Liste</button>
           </div>
+          <p class="m-drag-hint" id="drag-hint">Træk i et cover for at ændre rækkefølgen (hold fingeren på det på mobilen). Træk lydfiler herind for at tilføje dem.</p>
           <div id="songs" class="m-tracks"></div>
+          <div class="m-dropzone" id="dropzone" hidden>Slip filerne for at tilføje dem</div>
         </section>
 
         <section class="m-sec">
@@ -113,6 +130,12 @@
       </div>
     </div>
   </main>
+
+  <!-- One song: versions, links, covers -->
+  <dialog class="m-sheet m-sheet--song" id="song-sheet">
+    <div id="song-sheet-body"></div>
+    <form method="dialog" class="m-sheet__actions"><button class="m-mini" value="close">Luk</button></form>
+  </dialog>
 
   <!-- Pick the song a new version belongs to -->
   <dialog class="m-sheet" id="pick">
