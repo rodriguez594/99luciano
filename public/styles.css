@@ -202,6 +202,21 @@ em, i { font-style: normal; }
 .podium li:first-child b, .podium li:first-child span { color: var(--text); }
 #done .podium { margin: 4px 0 24px; }
 
+/* Loyalty: gift cards for voting in several rounds */
+.loyal { margin: 28px 0 0; padding: 20px; border: 2px solid var(--line); max-width: 460px; }
+.loyal .label { margin: 0 0 8px; }
+.loyal__title { margin: 0; font-size: 0.86rem; font-weight: 800; line-height: 1.4; }
+.loyal__prizes { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0 0; padding: 0; }
+.loyal__prizes li { display: grid; gap: 4px; padding: 12px 8px; background: #fff; color: #000; text-align: center; }
+.loyal__prizes b { font-size: 1.05rem; font-weight: 800; }
+.loyal__prizes span { font-size: 0.5rem; font-weight: 800; letter-spacing: 0.14em; color: #555; }
+.loyal__progress { margin-top: 18px; }
+.loyal__dots { display: flex; gap: 8px; }
+.loyal__dots i { width: 28px; height: 28px; border: 2px solid var(--line); border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 0.7rem; font-weight: 800; }
+.loyal__dots i.is-on { background: #fff; border-color: #fff; color: #000; }
+.loyal__note { margin: 10px 0 0; font-size: 0.74rem; color: var(--soft); }
+#done .loyal { margin: 0 0 24px; }
+
 /* Countdown to the end of the vote */
 .countdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 420px; margin: 18px 0 0; }
 .countdown div { display: grid; justify-items: center; gap: 6px; padding: 14px 4px 12px; border: 2px solid var(--line); }

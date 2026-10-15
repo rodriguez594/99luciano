@@ -122,6 +122,7 @@
     endsAt = status.ends_at ? Date.parse(status.ends_at) : null;
     countdown();
     renderDraw(status.draw_at);
+    if (status.loyalty_min) all('.loyal-min').forEach(function (el) { el.textContent = status.loyalty_min; });
   }
 
   // ---------- countdown to the end of the vote ----------
@@ -613,8 +614,31 @@
     $('done-already').hidden = !entry.already;
     $('done-already').textContent = '@' + entry.handle + ' har allerede stemt, så du er allerede med. Én stemme per person.';
     renderStory(entry);
+    renderRounds(entry);
     clearTimeout(timer);
     show('done');
+  }
+
+  // ---------- loyalty: rounds voted in ----------
+
+  function renderRounds(entry) {
+    if (!API.rounds || !entry) return;
+    API.rounds(entry.handle).then(function (r) {
+      if (!r || !r.needed) return;
+      var dots = $('loyal-dots');
+      dots.innerHTML = '';
+      for (var i = 1; i <= r.needed; i++) {
+        var d = document.createElement('i');
+        d.textContent = i;
+        if (i <= r.rounds) d.className = 'is-on';
+        dots.appendChild(d);
+      }
+      var left = r.needed - r.rounds;
+      $('loyal-note').textContent = left > 0
+        ? 'Du har stemt ' + r.rounds + (r.rounds === 1 ? ' gang' : ' gange') + '. Stem ' + left + (left === 1 ? ' gang' : ' gange') + ' mere, så er du med.'
+        : 'Du er med i lodtrækningen om gavekortene. Bliv ved med at stemme.';
+      $('loyal-progress').hidden = false;
+    }, function () {});
   }
 
   // ---------- double chance: share on your Instagram story ----------

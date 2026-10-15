@@ -1,5 +1,5 @@
 // /api/admin/…  used by /management. The middleware has already checked the login.
-import { getDb, getCampaign, isClosed, fileUrl, json, body, handle, now, HttpError } from '../../../lib/db.js';
+import { getDb, getCampaign, isClosed, fileUrl, json, body, handle, now, HttpError, loyaltyMin, LOYALTY_PRIZES } from '../../../lib/db.js';
 import { groupVotes, flagReasons, randomInt } from '../../../lib/groups.js';
 import { setFollowers } from '../../../lib/background.js';
 import { normalizeHandle } from '../vote.js';
@@ -329,6 +329,55 @@ export const onRequest = handle(async (context) => {
         story: !!v.story, story_claimed: !!v.story_claimed,
         flagged: size.get(groups.get(v.id)) > 1, grp: groups.get(v.id), created_at: v.created_at,
       })));
+    }
+
+    // ---------- gift cards for voting in several rounds ----------
+
+    // Everyone with how many rounds they voted in; eligible = at least the minimum
+    case 'GET loyalty': {
+      const min = await loyaltyMin(DB);
+      const [people, rounds, draws] = await Promise.all([
+        DB.prepare(
+          `SELECT handle, COUNT(DISTINCT campaign) AS rounds, MAX(created_at) AS last, MAX(verified) AS verified
+           FROM votes GROUP BY handle ORDER BY rounds DESC, last DESC`
+        ).all(),
+        DB.prepare('SELECT campaign, COUNT(*) AS n, MIN(created_at) AS first FROM votes GROUP BY campaign ORDER BY first').all(),
+        DB.prepare('SELECT * FROM loyalty_draws ORDER BY id DESC LIMIT 5').all(),
+      ]);
+      return json({
+        min, prizes: LOYALTY_PRIZES,
+        rounds: rounds.results,
+        people: people.results.map((p) => ({ ...p, verified: !!p.verified, eligible: p.rounds >= min })),
+        draws: draws.results.map((d) => ({ ...d, winners: JSON.parse(d.winners) })),
+      });
+    }
+
+    case 'PUT loyalty': {
+      const b = await body(request);
+      const n = Math.floor(Number(b.min));
+      if (!(n >= 1 && n <= 50)) throw new HttpError(400, 'Skriv et antal mellem 1 og 50.');
+      await DB.prepare("INSERT INTO settings (key, value) VALUES ('loyalty_min', ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value")
+        .bind(String(n)).run();
+      return json({ ok: true, min: n });
+    }
+
+    // Three different people at random among the eligible: 300, 150 and 50 kr.
+    case 'POST loyalty-draw': {
+      const min = await loyaltyMin(DB);
+      const r = await DB.prepare(
+        'SELECT handle, COUNT(DISTINCT campaign) AS rounds FROM votes GROUP BY handle HAVING COUNT(DISTINCT campaign) >= ?'
+      ).bind(min).all();
+      const pool = r.results.slice();
+      if (!pool.length) throw new HttpError(400, 'Ingen har stemt ' + min + ' gange endnu.');
+      const winners = [];
+      LOYALTY_PRIZES.forEach((prize, i) => {
+        if (!pool.length) return;
+        const [w] = pool.splice(randomInt(pool.length), 1);
+        winners.push({ place: i + 1, prize, handle: w.handle, rounds: w.rounds });
+      });
+      await DB.prepare('INSERT INTO loyalty_draws (winners, pool, min_rounds, created_at) VALUES (?, ?, ?, ?)')
+        .bind(JSON.stringify(winners), r.results.length, min, now()).run();
+      return json({ winners, pool: r.results.length, min });
     }
 
     case 'GET signups': {

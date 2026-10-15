@@ -56,7 +56,7 @@
       </div>
 
       <nav class="m-tabs" aria-label="Sektioner">
-        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#besked" id="tab-notif">Notifikationer</a><a href="#reposter">Reposter</a><a href="#flag">Flag</a><a href="#vinder">Følgere &amp; vinder</a>
+        <a href="#giveaway">Indstillinger</a><a href="#sange">Sange</a><a href="#stemmer">Stemmer</a><a href="#besked" id="tab-notif">Notifikationer</a><a href="#reposter">Reposter</a><a href="#flag">Flag</a><a href="#vinder">Følgere &amp; vinder</a><a href="#gavekort">Gavekort 500 kr.</a>
       </nav>
 
       <!-- Giveaway settings -->
@@ -208,6 +208,27 @@
         <button class="btn btn--solid" id="draw">Træk</button>
         <p id="winner"></p>
         <p class="step__note" id="winner-note"></p>
+      </section>
+
+      <!-- Gift cards for voting in several rounds -->
+      <section class="m-sec" id="gavekort">
+        <p class="label" id="loy-count">Gavekort for 500 kr.</p>
+        <p class="step__note">Alle, der har stemt i mindst så mange afstemninger, er med i lodtrækningen om tre gavekort: 300, 150 og 50 kr.
+          Stemmer tælles på Instagram-brugernavn på tværs af alle afstemninger. Lodtrækningen er helt tilfældig.</p>
+        <div class="m-new">
+          <label class="m-field" style="flex:1"><span>Antal afstemninger for at være med</span><input id="loy-min" type="number" inputmode="numeric" min="1" max="50" value="3"></label>
+          <button type="button" class="btn" id="loy-save">Gem</button>
+        </div>
+        <div class="m-stats">
+          <div><b id="loy-rounds">0</b><span>Afstemninger</span></div>
+          <div><b id="loy-eligible">0</b><span>Er med</span></div>
+          <div><b id="loy-close">0</b><span>Mangler 1</span></div>
+        </div>
+        <button type="button" class="btn btn--solid" id="loy-draw">Træk 3 vindere</button>
+        <div id="loy-winners" class="m-loy-winners"></div>
+        <p class="step__note" id="loy-note" aria-live="polite"></p>
+        <p class="label" style="margin-top:36px">Deltagere</p>
+        <div id="loy-people" class="m-list m-voters"></div>
       </section>
     </div>
   </main>

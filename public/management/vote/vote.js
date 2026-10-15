@@ -13,6 +13,7 @@
   var squareJpeg = Admin.squareJpeg;
 
   function loadAll() {
+    loadLoyalty();
     loadStories();
     loadCampaign();
     loadSongs();
@@ -672,6 +673,73 @@
 
   $('voters-search').addEventListener('input', function () { voterLimit = 100; renderVoters(); });
   $('voters-more').addEventListener('click', function () { voterLimit += 200; renderVoters(); });
+
+  // ---------- gift cards for voting in several rounds ----------
+
+  function loadLoyalty() {
+    admin('GET', 'loyalty').then(function (d) {
+      if (document.activeElement !== $('loy-min')) $('loy-min').value = d.min;
+      var eligible = d.people.filter(function (p) { return p.eligible; });
+      $('loy-rounds').textContent = d.rounds.length;
+      $('loy-eligible').textContent = eligible.length;
+      $('loy-close').textContent = d.people.filter(function (p) { return p.rounds === d.min - 1; }).length;
+      $('loy-count').textContent = 'Gavekort for 500 kr. · ' + eligible.length + (eligible.length === 1 ? ' er med' : ' er med');
+      $('loy-draw').disabled = !eligible.length;
+      if (d.draws.length) showLoyaltyWinners(d.draws[0]);
+      var box = $('loy-people');
+      box.innerHTML = '';
+      if (!d.people.length) box.innerHTML = '<p class="step__note">Ingen stemmer endnu.</p>';
+      d.people.slice(0, 300).forEach(function (p) {
+        var row = document.createElement('div');
+        row.className = 'm-voter m-repost' + (p.eligible ? ' is-ok' : '');
+        row.innerHTML = '<a target="_blank" rel="noopener"></a><span class="m-voter__song"></span><small></small>';
+        var a = row.querySelector('a');
+        a.textContent = '@' + p.handle;
+        a.href = 'https://instagram.com/' + encodeURIComponent(p.handle);
+        row.querySelector('.m-voter__song').textContent = p.rounds + ' / ' + d.min;
+        row.querySelector('small').textContent = (p.eligible ? 'Er med' : 'Mangler ' + (d.min - p.rounds)) +
+          ' · stemte sidst ' + new Date(p.last).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' }) + (p.verified ? ' · følger' : '');
+        box.appendChild(row);
+      });
+    }, function () {});
+  }
+
+  function showLoyaltyWinners(draw) {
+    var box = $('loy-winners');
+    box.innerHTML = '';
+    draw.winners.forEach(function (w) {
+      var row = document.createElement('div');
+      row.className = 'm-loy-winner';
+      row.innerHTML = '<span class="m-loy-winner__prize"></span><a target="_blank" rel="noopener"></a><small></small>';
+      row.querySelector('.m-loy-winner__prize').textContent = w.prize + ' kr.';
+      var a = row.querySelector('a');
+      a.textContent = '@' + w.handle;
+      a.href = 'https://instagram.com/' + encodeURIComponent(w.handle);
+      row.querySelector('small').textContent = w.place + '. præmie · stemte ' + w.rounds + ' gange';
+      box.appendChild(row);
+    });
+    $('loy-note').textContent = 'Trukket ' + new Date(draw.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) +
+      ' blandt ' + draw.pool + (draw.pool === 1 ? ' person' : ' personer') + ' (mindst ' + draw.min_rounds + ' afstemninger).' +
+      (draw.winners.length < 3 ? ' Der var ikke nok deltagere til alle tre gavekort.' : '');
+  }
+
+  $('loy-save').addEventListener('click', function () {
+    var n = parseInt($('loy-min').value, 10);
+    admin('PUT', 'loyalty', { min: n }).then(function () {
+      $('loy-note').textContent = 'Gemt. Man skal nu have stemt ' + n + ' gange for at være med.';
+      loadLoyalty();
+    }, function (e) { $('loy-note').textContent = e.message; });
+  });
+
+  $('loy-draw').addEventListener('click', function () {
+    if (!confirm('Træk 3 tilfældige vindere af gavekortene nu?')) return;
+    $('loy-draw').disabled = true;
+    admin('POST', 'loyalty-draw').then(function (r) {
+      showLoyaltyWinners({ winners: r.winners, pool: r.pool, min_rounds: r.min, created_at: new Date().toISOString() });
+      $('loy-draw').disabled = false;
+      $('loy-draw').textContent = 'Træk igen';
+    }, function (e) { $('loy-note').textContent = e.message; $('loy-draw').disabled = false; });
+  });
 
   // ---------- reposters (double chance) ----------
 

@@ -60,7 +60,8 @@ Now 99luciano.dk/management asks for your email, sends a code, and lets you in. 
 ## How the giveaway works
 
 - New giveaways start as an **unpublished draft**: /vote says "Afstemningen åbner snart" until you press **Udgiv** at /management/vote. "Skjul" hides it again.
-- /vote says the top three are all released: 1st place as the next single, 2nd place 2 weeks after and 3rd place 3 weeks after (text in `public/vote/index.html`, the `podium` list).
+- /vote shows the release plan: 1st place as the next single, 2nd place 2 weeks after, then a new vote with three songs 1 week after (text in `public/vote/index.html`, the `podium` list).
+- **Gift cards for voting every time:** votes are counted per Instagram username across all giveaways. Everyone who has voted in at least 3 (changeable under "Gavekort 500 kr." at /management/vote) is in a random draw for gift cards of 300, 150 and 50 kr. After voting, people see how many rounds they have. Every draw is saved.
 - /vote shows a live **countdown** to the end date, and the time of the **draw on Instagram Live** with the rule that the winner has to be in the livestream within 5 minutes.
 - People can leave an email or phone number to **hear when the winner is drawn**. These are only saved for now (list and CSV under Besked); nothing is sent until an email/SMS service is connected.
 - **Double chance:** after voting, people get a story picture to share (or save) and tag the account, then press "Jeg har delt". They show up under **Reposter** at /management/vote; press "Godkend" once you've seen the story and their entry counts double in the draw. You can also add a username by hand, even before they vote (the double chance applies when they do).

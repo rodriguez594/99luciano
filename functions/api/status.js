@@ -1,6 +1,6 @@
 // GET /api/status?campaign=…  Everything the giveaway page needs: settings, songs,
 // follower count and whether voting is open. The page asks every 30 seconds.
-import { getDb, getCampaign, isClosed, fileUrl, json, handle } from '../../lib/db.js';
+import { getDb, getCampaign, isClosed, fileUrl, json, handle, loyaltyMin } from '../../lib/db.js';
 import { backgroundWork } from '../../lib/background.js';
 
 export const onRequestGet = handle(async ({ request, env, waitUntil }) => {
@@ -27,6 +27,7 @@ export const onRequestGet = handle(async ({ request, env, waitUntil }) => {
     artist: c.artist,
     ends_at: c.ends_at,
     draw_at: c.draw_at,
+    loyalty_min: await loyaltyMin(DB),
     followers: ig ? ig.followers : 0,
     goal: c.goal,
     unlocked: !!c.unlocked_at,

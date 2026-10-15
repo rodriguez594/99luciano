@@ -45,6 +45,10 @@ var API = {
     return apiFetch('/api/vote', { campaign: CAMPAIGN.id, handle: handle, song: song, device: device })
       .then(function (r) { return r.result; });
   },
+  // How many rounds this username has voted in (for the gift card draw)
+  rounds: function (handle) {
+    return apiFetch('/api/rounds?handle=' + encodeURIComponent(handle || ''));
+  },
   // The voter shared the vote on their Instagram story (double chance once it's confirmed at /management)
   story: function (handle) {
     return apiFetch('/api/story', { campaign: CAMPAIGN.id, handle: handle })

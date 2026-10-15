@@ -33,8 +33,19 @@
       <ol class="podium reveal" aria-label="Hvornår numrene udkommer">
         <li><b>1. plads</b><span>Udkommer som næste single</span></li>
         <li><b>2. plads</b><span>Udkommer 2 uger efter</span></li>
-        <li><b>3. plads</b><span>Udkommer 3 uger efter</span></li>
+        <li><b>Ny afstemning</b><span>1 uge efter, med tre sange</span></li>
       </ol>
+      <!-- Loyalty: vote in enough rounds to join the gift card draw -->
+      <section class="loyal reveal" aria-label="Gavekort for 500 kr.">
+        <p class="label">Stem hver gang</p>
+        <p class="loyal__title">Stem i <span class="loyal-min">3</span> afstemninger, og vær med i lodtrækningen om gavekort for 500 kr.</p>
+        <ol class="loyal__prizes">
+          <li><b>300 kr.</b><span>1. præmie</span></li>
+          <li><b>150 kr.</b><span>2. præmie</span></li>
+          <li><b>50 kr.</b><span>3. præmie</span></li>
+        </ol>
+        
+      </section>
       <!-- The prize as a gift card. Amount and text come from the prize set at /management. -->
       <figure class="giftcard reveal" aria-label="Præmie">
         <div class="giftcard__card">
@@ -168,8 +179,19 @@
       <ol class="podium" aria-label="Hvornår numrene udkommer">
         <li><b>1. plads</b><span>Udkommer som næste single</span></li>
         <li><b>2. plads</b><span>Udkommer 2 uger efter</span></li>
-        <li><b>3. plads</b><span>Udkommer 3 uger efter</span></li>
+        <li><b>Ny afstemning</b><span>1 uge efter, med tre sange</span></li>
       </ol>
+      <!-- Loyalty: vote in enough rounds to join the gift card draw -->
+      <section class="loyal" aria-label="Gavekort for 500 kr.">
+        <p class="label">Stem hver gang</p>
+        <p class="loyal__title">Stem i <span class="loyal-min">3</span> afstemninger, og vær med i lodtrækningen om gavekort for 500 kr.</p>
+        <ol class="loyal__prizes">
+          <li><b>300 kr.</b><span>1. præmie</span></li>
+          <li><b>150 kr.</b><span>2. præmie</span></li>
+          <li><b>50 kr.</b><span>3. præmie</span></li>
+        </ol>
+        <div class="loyal__progress" id="loyal-progress" hidden><div class="loyal__dots" id="loyal-dots"></div><p class="loyal__note" id="loyal-note"></p></div>
+      </section>
       <p class="done__note" id="done-when">Vinderen bliver offentliggjort på Instagram, når giveawayen slutter.</p>
       <div class="draw" data-draw hidden>
         <p class="draw__when"></p>
