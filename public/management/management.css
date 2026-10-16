@@ -595,3 +595,15 @@ a.m-card:hover { border-color: var(--text); }
 .m-drop__head { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
 .m-drop__head h3 { font-size: 1rem; overflow-wrap: anywhere; }
 .m-drop__meta { margin: 0; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
+
+/* Vault listening stats */
+.m-drop__stats { margin-top: 6px; }
+.m-drop__stats summary { cursor: pointer; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.16em; color: var(--soft); padding: 6px 0; }
+.m-drop__stats summary:hover { color: var(--text); }
+.m-stats--4 { grid-template-columns: repeat(4, 1fr); margin-top: 6px; }
+.m-stats--4 b { font-size: clamp(1.1rem, 5vw, 1.6rem); }
+.m-vbar { display: grid; grid-template-columns: 74px 1fr 28px; gap: 10px; align-items: center; margin: 6px 0; }
+.m-vbar span { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.1em; color: var(--muted); }
+.m-vbar b { font-size: 0.72rem; text-align: right; font-variant-numeric: tabular-nums; }
+.m-vbar .m-bar { height: 10px; }
+@media (max-width: 480px) { .m-drop { grid-template-columns: 60px 1fr; } .m-stats--4 { grid-template-columns: repeat(2, 1fr); } }

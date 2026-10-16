@@ -64,8 +64,22 @@
       st === 'live' ? 'Forsvinder om ' + left(Date.parse(v.ends_at) - t) + ' (' + when2(v.ends_at) + ')' :
         st === 'scheduled' ? 'Åbner ' + when2(v.starts_at) + ' · i ' + left(Date.parse(v.ends_at) - Date.parse(v.starts_at)) :
           'Var oppe ' + when2(v.starts_at) + ' – ' + when2(v.ends_at),
-      v.plays + (v.plays === 1 ? ' afspilning' : ' afspilninger')
+      v.listeners + (v.listeners === 1 ? ' lytter' : ' lyttere') + ' · ' + v.listens + (v.listens === 1 ? ' afspilning' : ' afspilninger') +
+        (v.listen_seconds ? ' · ' + dur(v.listen_seconds) + ' i alt' : '')
     ].join(' · ')));
+
+    // Listening stats, loaded when opened
+    var det = el('details', 'm-drop__stats');
+    det.open = !!openStats[v.id];
+    det.appendChild(el('summary', null, 'Statistik'));
+    var statBox = el('div', 'm-vstats');
+    det.appendChild(statBox);
+    det.addEventListener('toggle', function () {
+      openStats[v.id] = det.open;
+      if (det.open) loadStats(v, statBox);
+    });
+    if (det.open) loadStats(v, statBox);
+    body.appendChild(det);
 
     var acts = el('div', 'm-song__actions');
     var patch = function (data, msg) {
@@ -102,6 +116,64 @@
     body.appendChild(acts);
     r.appendChild(body);
     return r;
+  }
+
+  var openStats = {};
+  function dur(s) {
+    s = Math.round(s || 0);
+    var h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60;
+    return h ? h + 't ' + pad(m) + 'm' : m + ':' + pad(x);
+  }
+
+  function loadStats(v, box) {
+    if (!box.firstChild) box.appendChild(el('p', 'step__note', 'Henter…'));
+    api('GET', 'vault/' + encodeURIComponent(v.id)).then(function (s) {
+      box.innerHTML = '';
+      if (!s.listens) { box.appendChild(el('p', 'step__note', 'Ingen har lyttet endnu.')); return; }
+      var grid = el('div', 'm-stats m-stats--4');
+      [
+        [s.listeners, s.listeners === 1 ? 'Lytter' : 'Lyttere'],
+        [s.listens, 'Afspilninger'],
+        [dur(s.seconds), 'Lyttetid i alt'],
+        [dur(s.avg_per_listener), 'Gns. pr. lytter']
+      ].forEach(function (x) {
+        var d = el('div');
+        d.appendChild(el('b', null, String(x[0])));
+        d.appendChild(el('span', null, x[1]));
+        grid.appendChild(d);
+      });
+      box.appendChild(grid);
+      box.appendChild(el('p', 'm-drop__meta',
+        s.finished + ' af ' + s.listeners + ' hørte hele sangen' +
+        (s.listeners ? ' (' + Math.round(s.finished / s.listeners * 100) + ' %)' : '') +
+        (s.repeat ? ' · ' + s.repeat + ' lyttede mere end én gang' : '') +
+        (s.duration ? ' · sangen er ' + dur(s.duration) + ' lang' : '')));
+
+      // How far people got
+      box.appendChild(el('p', 'm-sublabel', 'Hvor langt nåede de'));
+      var max = Math.max.apply(null, s.buckets.concat([1]));
+      ['0–25 %', '25–50 %', '50–75 %', '75–100 %'].forEach(function (label, i) {
+        var r = el('div', 'm-vbar');
+        r.appendChild(el('span', null, label));
+        var bar = el('div', 'm-bar');
+        var fill = el('i');
+        fill.style.width = (s.buckets[i] / max * 100) + '%';
+        bar.appendChild(fill);
+        r.appendChild(bar);
+        r.appendChild(el('b', null, String(s.buckets[i])));
+        box.appendChild(r);
+      });
+
+      box.appendChild(el('p', 'm-sublabel', 'Seneste afspilninger'));
+      var list = el('div', 'm-list');
+      s.recent.forEach(function (x) {
+        var row = el('div', 'signup');
+        row.appendChild(el('span', null, new Date(x.started_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })));
+        row.appendChild(el('span', null, 'lyttede ' + dur(x.seconds) + (x.duration ? ' · nåede ' + Math.min(100, Math.round(x.max_pos / x.duration * 100)) + ' %' : '')));
+        list.appendChild(row);
+      });
+      box.appendChild(list);
+    }, function (e) { box.innerHTML = ''; box.appendChild(el('p', 'step__note', e.message)); });
   }
 
   function btn(text, fn, cls) {

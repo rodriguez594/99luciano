@@ -4,6 +4,50 @@
   var audio = new Audio();
   audio.preload = 'none';
   var drops = [], playing = null, counted = {}, nextAt = null, tickTimer = 0, poll = 0;
+  var session = null, listened = 0, lastPos = null, sentAt = 0;
+
+  // ---------- listen tracking: how long, how far ----------
+
+  function hex(n) {
+    var a = new Uint8Array(n);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+  // The same random id the vote page uses, so one browser counts as one listener
+  function device() {
+    var id = null;
+    try { id = localStorage.getItem('luciano:device'); } catch (e) {}
+    if (!/^[a-f0-9]{32}$/.test(id || '')) {
+      id = hex(16);
+      try { localStorage.setItem('luciano:device', id); } catch (e) {}
+    }
+    return id;
+  }
+  function report(final) {
+    if (!session || !playing) return;
+    var data = JSON.stringify({
+      drop: playing, session: session, device: device(), seconds: Math.round(listened * 10) / 10,
+      pos: audio.currentTime || 0, duration: isFinite(audio.duration) ? audio.duration : null
+    });
+    sentAt = Date.now();
+    if (final && navigator.sendBeacon) {
+      navigator.sendBeacon('/api/vault/listen', new Blob([data], { type: 'application/json' }));
+      return;
+    }
+    fetch('/api/vault/listen', { method: 'POST', headers: { 'content-type': 'application/json' }, body: data, keepalive: !!final }).catch(function () {});
+  }
+  // Count only real playing time (not skipping ahead)
+  audio.addEventListener('timeupdate', function () {
+    var t = audio.currentTime;
+    if (!audio.paused && lastPos !== null && t > lastPos && t - lastPos < 2) listened += t - lastPos;
+    lastPos = t;
+    if (Date.now() - sentAt > 10000) report(false);
+  });
+  audio.addEventListener('seeking', function () { lastPos = null; });
+  audio.addEventListener('pause', function () { lastPos = null; report(false); });
+  audio.addEventListener('ended', function () { report(false); });
+  window.addEventListener('pagehide', function () { report(true); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') report(true); });
 
   function load() {
     fetch('/api/vault', { cache: 'no-store' }).then(function (r) {
@@ -78,6 +122,10 @@
     }
     stop();
     playing = x.id;
+    session = hex(16);
+    listened = 0;
+    lastPos = null;
+    sentAt = 0;
     audio.src = x.audio;
     audio.play().catch(function () {
       $('vault-note').textContent = 'Sangen kunne ikke afspilles. Den er måske lige forsvundet.';
@@ -91,6 +139,8 @@
   }
 
   function stop() {
+    report(false);
+    session = null;
     audio.pause();
     audio.removeAttribute('src');
     audio.load();
