@@ -650,3 +650,40 @@ main.vote:has(> .folio) { padding-top: 64px; }
   cursor: pointer;
 }
 .demo-bar button.is-on { background: var(--text); color: var(--bg); }
+
+/* ---------- Vault (99luciano.dk/vault) ---------- */
+.vault { max-width: 760px; margin: 0 auto; padding: 120px var(--gutter) 80px; min-height: 80vh; }
+.vault .display { font-size: clamp(2.6rem, 12vw, 5rem); }
+.vault__list { display: grid; gap: 22px; margin-top: 34px; }
+.drop { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; border: 2px solid var(--text); }
+.drop__cover { aspect-ratio: 1; width: 100%; }
+.drop__cover.is-blank {
+  background: radial-gradient(circle closest-side, #111 0 3%, #f2f2f2 3.5% 24%, transparent 24.5%), repeating-radial-gradient(circle closest-side, #0b0b0b 0 1.4%, #181818 1.4% 2.2%);
+}
+.drop__body { padding: 22px; }
+.drop__artist { margin: 0 0 6px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.2em; color: var(--muted); }
+.drop__title { margin: 0; font-size: clamp(1.8rem, 8vw, 2.6rem); line-height: 1.02; overflow-wrap: anywhere; }
+.drop__note { margin: 12px 0 0; font-size: 0.78rem; color: var(--soft); text-transform: none; }
+.drop__player { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
+.drop__play { flex: none; width: 64px; height: 64px; border: 0; border-radius: 50%; background: #fff; cursor: pointer; display: grid; place-items: center; }
+.drop__play span { width: 0; height: 0; margin-left: 5px; border-style: solid; border-width: 11px 0 11px 18px; border-color: transparent transparent transparent #000; }
+.drop.is-playing .drop__play span { width: 18px; height: 22px; margin: 0; border: 0; border-left: 6px solid #000; border-right: 6px solid #000; }
+.drop__track { flex: 1; min-width: 0; }
+.drop__bar { height: 6px; background: var(--line); cursor: pointer; }
+.drop__bar i { display: block; height: 100%; background: #fff; transform: scaleX(0); transform-origin: left; }
+.drop__time { margin: 8px 0 0; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.drop__left-label { margin: 24px 0 4px; }
+.drop__left { margin: 0; font-size: clamp(1.6rem, 8vw, 2.2rem); font-weight: 800; font-variant-numeric: tabular-nums; }
+@media (min-width: 640px) {
+  .drop { grid-template-columns: 260px minmax(0, 1fr); }
+  .drop__cover { height: 100%; aspect-ratio: auto; min-height: 260px; }
+}
+.vault__locked { margin-top: 40px; }
+.vault__lock { width: 54px; height: 64px; margin-bottom: 22px; position: relative; }
+.vault__lock::before { content: ""; position: absolute; left: 9px; top: 0; width: 36px; height: 34px; border: 6px solid #fff; border-bottom: 0; border-radius: 20px 20px 0 0; box-sizing: border-box; }
+.vault__lock::after { content: ""; position: absolute; left: 0; bottom: 0; width: 54px; height: 36px; background: #fff; border-radius: 4px; }
+.vault__locked-title { margin: 0 0 24px; font-size: clamp(1.6rem, 7vw, 2.2rem); }
+#vault-next .countdown { margin: 8px 0 10px; }
+.folio__cta + .folio__cta { margin-top: 12px; }
+.folio__cta--vault { background: none; color: #fff; border: 2px solid #fff; }
+.folio__cta--vault span { color: var(--soft); }

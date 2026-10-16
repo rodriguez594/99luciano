@@ -4,6 +4,7 @@ import { groupVotes, flagReasons, randomInt } from '../../../lib/groups.js';
 import { setFollowers } from '../../../lib/background.js';
 import { normalizeHandle } from '../vote.js';
 import { PROJECT_SECTIONS, projectRoutes, projectList, recentVersions } from '../../../lib/projects.js';
+import { VAULT_SECTIONS, vaultRoutes } from '../../../lib/vault.js';
 
 const MAX_FILE = 15 * 1024 * 1024;
 
@@ -16,6 +17,7 @@ export const onRequest = handle(async (context) => {
   const q = (k) => url.searchParams.get(k);
 
   if (PROJECT_SECTIONS.has(section)) return projectRoutes(context, DB, route, id);
+  if (VAULT_SECTIONS.has(section)) return vaultRoutes(context, DB, route, id);
 
   switch (route) {
     case 'GET me':

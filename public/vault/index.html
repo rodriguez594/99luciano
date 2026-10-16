@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="da" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>99 LUCIANO | Vault</title>
+  <meta name="description" content="Ikke-udgivne sange fra 99 LUCIANO. Kun her, kun i en begrænset tid.">
+  <meta name="theme-color" content="#000000">
+  <meta property="og:title" content="99 LUCIANO | Vault">
+  <meta property="og:description" content="Ikke-udgivne sange. Kun her, kun i en begrænset tid.">
+  <meta property="og:image" content="../assets/og.png">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
+  <link rel="apple-touch-icon" href="../assets/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css?v=dev">
+</head>
+<body>
+  <header class="nav">
+    <a href="../" class="nav__brand" aria-label="99 LUCIANO">
+      <img src="../assets/mark-160.png" alt="" width="34" height="31">
+      <span>LUCIANO</span>
+    </a>
+  </header>
+
+  <main class="vault">
+    <p class="label">Vault</p>
+    <h1 class="display">Ikke udgivet.</h1>
+    <p class="vote__intro">Sange, der ikke er ude. Kun her, og kun i en begrænset tid.</p>
+
+    <p class="step__note" id="vault-note" aria-live="polite">Henter…</p>
+
+    <!-- Open right now -->
+    <div id="vault-live" class="vault__list"></div>
+
+    <!-- Nothing open -->
+    <section id="vault-locked" class="vault__locked" hidden>
+      <div class="vault__lock" aria-hidden="true"></div>
+      <h2 class="vault__locked-title">Vaulten er låst.</h2>
+      <div id="vault-next" hidden>
+        <p class="label">Næste sang åbner om</p>
+        <div class="countdown" id="next-cd">
+          <div><b data-n="d">0</b><span>Dage</span></div>
+          <div><b data-n="h">00</b><span>Timer</span></div>
+          <div><b data-n="m">00</b><span>Min</span></div>
+          <div><b data-n="s">00</b><span>Sek</span></div>
+        </div>
+        <p class="step__note" id="next-when"></p>
+      </div>
+      <p class="vote__intro" id="vault-follow">Følg med på Instagram, så du ved, når der kommer noget i vaulten.</p>
+      <nav class="apps apps--left" aria-label="Find mig her"></nav>
+    </section>
+  </main>
+
+  <template id="drop-tpl">
+    <article class="drop">
+      <div class="drop__cover art"></div>
+      <div class="drop__body">
+        <p class="drop__artist"></p>
+        <h2 class="drop__title"></h2>
+        <p class="drop__note"></p>
+        <div class="drop__player">
+          <button type="button" class="drop__play" aria-label="Afspil"><span></span></button>
+          <div class="drop__track">
+            <div class="drop__bar"><i></i></div>
+            <p class="drop__time">0:00</p>
+          </div>
+        </div>
+        <p class="label drop__left-label">Forsvinder om</p>
+        <p class="drop__left"></p>
+      </div>
+    </article>
+  </template>
+
+  <footer class="footer">
+    <img src="../assets/mark-160.png" alt="" width="33" height="30">
+    <p>© <span id="year">2026</span> 99 LUCIANO, en del af 99</p>
+    <nav class="footer__family" aria-label="Links">
+      <span class="footer__socials"></span>
+      <a href="https://99management.dk" target="_blank" rel="noopener">99MGMT</a>
+    </nav>
+  </footer>
+
+  <script src="../main.js?v=dev"></script>
+  <script src="../giveaway/config.js?v=dev"></script>
+  <script src="../giveaway/socials.js?v=dev"></script>
+  <script src="vault.js?v=dev"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="da" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>99 LUCIANO | Vault</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="apple-touch-icon" href="../../assets/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css?v=dev">
+  <link rel="stylesheet" href="../management.css?v=dev">
+</head>
+<body>
+  <header class="nav">
+    <a href="../../" class="nav__brand" aria-label="99 LUCIANO">
+      <img src="../../assets/mark-160.png" alt="" width="34" height="31">
+      <span>LUCIANO</span>
+    </a>
+    <a class="m-logout" id="logout" href="/cdn-cgi/access/logout" hidden>Log ud</a>
+  </header>
+
+  <main class="m">
+    <nav class="m-nav" aria-label="Management">
+      <a href="../dashboard/">Dashboard</a><a href="../vote/">Afstemning</a><a href="../projects/">Projekter</a><a href="../vault/" aria-current="page">Vault</a>
+    </nav>
+    <h1 class="display" id="title">Vault</h1>
+
+    <section id="login" hidden>
+      <p class="step__note" id="login-note">Henter…</p>
+    </section>
+
+    <div id="panel" hidden>
+      <div class="m-publish" id="vault-status">
+        <div>
+          <p class="m-publish__state" id="vs-state">–</p>
+          <p class="step__note" id="vs-note"></p>
+        </div>
+        <div class="m-publish__actions"><a class="m-mini" href="/vault/" target="_blank" rel="noopener">Se siden</a></div>
+      </div>
+
+      <!-- New song -->
+      <section class="m-sec m-sec--first">
+        <p class="label">Læg en sang i vaulten</p>
+        <form id="new-drop" class="m-form">
+          <label class="btn btn--wide m-review__pick" id="pick-audio">Vælg sangen<small id="audio-name">MP3, WAV, M4A … · max 24 MB, større WAV bliver lavet om til MP3</small>
+            <input type="file" id="d-audio" accept="audio/*,.mp3,.wav,.aif,.aiff,.flac,.m4a,.aac,.ogg"></label>
+          <label class="m-field"><span>Titel</span><input id="d-title" type="text" maxlength="80" placeholder="Fx Natlys"></label>
+          <label class="m-field"><span>Kunstner (valgfri)</span><input id="d-artist" type="text" maxlength="60" placeholder="99 LUCIANO"></label>
+          <label class="m-field"><span>Tekst under sangen (valgfri)</span><input id="d-note" type="text" maxlength="300" placeholder="Fx Demo fra studiet i går"></label>
+          <label class="btn btn--wide m-review__pick">Cover (valgfrit)<small id="cover-name">Bliver beskåret til et kvadrat</small>
+            <input type="file" id="d-cover" accept="image/*"></label>
+
+          <div class="m-field"><span>Hvornår</span>
+            <div class="m-view" id="d-when">
+              <button type="button" class="m-chip is-on" data-when="now">Nu</button>
+              <button type="button" class="m-chip" data-when="later">Senere</button>
+            </div>
+          </div>
+          <label class="m-field" id="d-start-row" hidden><span>Åbner</span><input id="d-start" type="datetime-local"></label>
+
+          <div class="m-field"><span>Hvor længe</span>
+            <div class="m-view m-durations" id="d-dur">
+              <button type="button" class="m-chip" data-h="1">1 time</button>
+              <button type="button" class="m-chip" data-h="6">6 timer</button>
+              <button type="button" class="m-chip" data-h="12">12 timer</button>
+              <button type="button" class="m-chip is-on" data-h="24">24 timer</button>
+              <button type="button" class="m-chip" data-h="48">48 timer</button>
+              <button type="button" class="m-chip" data-h="168">7 dage</button>
+              <button type="button" class="m-chip" data-h="custom">Andet</button>
+            </div>
+          </div>
+          <label class="m-field" id="d-end-row" hidden><span>Forsvinder</span><input id="d-end" type="datetime-local"></label>
+          <p class="step__note" id="d-summary"></p>
+
+          <button class="btn btn--solid" id="d-save">Læg i vaulten</button>
+          <div class="m-bar" id="d-progress" hidden><i></i></div>
+          <p class="step__note" id="d-note-out" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <!-- All songs -->
+      <section class="m-sec">
+        <p class="label" id="list-count">Sange i vaulten</p>
+        <div id="drops" class="m-drops"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../../main.js?v=dev"></script>
+  <script src="../admin.js?v=dev"></script>
+  <script src="../vendor/lame.min.js?v=dev"></script>
+  <script src="vault.js?v=dev"></script>
+</body>
+</html>

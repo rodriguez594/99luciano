@@ -24,6 +24,11 @@
       <h1 class="folio__word">LUCIANO</h1>
       <nav class="apps" aria-label="Find mig her"></nav>
       <!-- Shown while a vote is running -->
+      <!-- Shown while a song is open in the vault -->
+      <a class="folio__cta folio__cta--vault" id="vault-cta" href="vault/" hidden>
+        <strong>Vaulten er åben</strong>
+        <span id="vault-cta-text">Hør en ikke-udgivet sang</span>
+      </a>
       <a class="folio__cta" id="vote-cta" href="vote/" hidden>
         <strong>Stem på min næste single</strong>
         <span id="vote-prize">og vind et gavekort på 150 kr.</span>
@@ -55,6 +60,15 @@
           : (s.prize ? 'og vind ' + s.prize.charAt(0).toLowerCase() + s.prize.slice(1) : 'og vind en præmie');
         document.getElementById('vote-cta').hidden = false;
       }
+    }, function () {});
+
+    // Show the vault button while a song is open there
+    fetch('/api/vault', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (v) {
+      if (!v || !v.live || !v.live.length) return;
+      var x = v.live[0];
+      var h = Math.max(1, Math.round((Date.parse(x.ends_at) - Date.now()) / 36e5));
+      document.getElementById('vault-cta-text').textContent = x.title + ' · forsvinder om ' + (h < 48 ? h + (h === 1 ? ' time' : ' timer') : Math.round(h / 24) + ' dage');
+      document.getElementById('vault-cta').hidden = false;
     }, function () {});
   </script>
 </body>

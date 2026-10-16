@@ -70,6 +70,12 @@ Now 99luciano.dk/management asks for your email, sends a code, and lets you in. 
 - **Flagging instead of blocking:** nobody is turned away. Each vote stores a random device id (cookie + local storage) and a hash of the network (the IP itself isn't stored). Votes that share one are grouped under **Flag** at /management, and a group counts as **one entry** in the draw. If someone in a group is clearly a different person (a family on the same wifi), press "Egen person".
 - **Winner:** download your follower list from Instagram (Settings → Accounts Centre → Your information and permissions → Download your information → Followers and following, JSON), upload `followers_1.json` under Vinder, then press "Træk". It picks among entries from people who follow, and tells you if the winner was flagged with anyone.
 
+## Vault (99luciano.dk/vault)
+
+Unreleased songs that can be played only for a set time. At **/management/vault**: pick the song (MP3/M4A up to 24 MB go up as they are; WAV/AIFF/FLAC or bigger files are turned into an MP3 in the browser first), give it a title and optionally a cover and a line of text, choose when it opens (now or later) and for how long (1, 6, 12, 24, 48 hours, 7 days or your own end time). Live songs can be extended (+24 hours) or closed; ended songs can be opened again. Plays are counted.
+
+/vault plays the song with a countdown until it disappears. The audio is only served by `/api/vault/audio/<id>` while the window is open, never cached, and is gone the moment the time is up. When nothing is open, /vault says it's locked and counts down to the next song (without its title). The front page shows a "Vaulten er åben" button while something is live. Anything that plays in a browser can be recorded, so the vault makes it hard, not impossible, to keep a copy.
+
 ## At /management
 
 - **Dashboard:** the vote (status, votes, songs ready, sign-ups, top songs), active projects with their goals, and the latest versions.
