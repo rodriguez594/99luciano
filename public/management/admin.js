@@ -13,7 +13,15 @@
       opts.body = JSON.stringify(data);
       opts.headers['content-type'] = 'application/json';
     }
+    // Give up instead of hanging forever (a bad connection, or Safari restoring the page mid-request)
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = 0;
+    if (ctrl) {
+      opts.signal = ctrl.signal;
+      timer = setTimeout(function () { ctrl.abort(); }, raw ? 120000 : 15000);
+    }
     return fetch('/api/admin/' + path, opts).then(function (res) {
+      clearTimeout(timer);
       if (res.type === 'opaqueredirect' || res.status === 0) {
         var r = new Error('login');
         r.status = 401;
@@ -34,8 +42,9 @@
         }
         return out;
       });
-    }, function () {
-      throw new Error('Ingen forbindelse. Prøv igen.');
+    }, function (err) {
+      clearTimeout(timer);
+      throw new Error(err && err.name === 'AbortError' ? 'Det tog for lang tid. Prøv igen.' : 'Ingen forbindelse. Prøv igen.');
     });
   }
 
@@ -46,12 +55,53 @@
   }
 
   // Checks the login, then calls ready(). Explains what to do when the login isn't set up.
-  function start(ready) {
+  // A "Prøv igen" button under "Henter…" / the error, so a stuck page never needs a manual reload
+  function retryButton(onClick) {
+    var b = $('login-retry');
+    if (!b) {
+      b = document.createElement('button');
+      b.type = 'button';
+      b.id = 'login-retry';
+      b.className = 'btn btn--solid';
+      b.textContent = 'Prøv igen';
+      $('login').appendChild(b);
+    }
+    b.hidden = false;
+    b.onclick = onClick;
+    return b;
+  }
+
+  var startedOnce = false;
+  function start(ready, tries) {
+    tries = tries || 0;
+    var title = $('title').dataset.title || ($('title').dataset.title = $('title').textContent);
+    $('title').textContent = title;
+    $('login-note').textContent = 'Henter…';
+    if ($('login-retry')) $('login-retry').hidden = true;
     show('login');
+    var done = false;
+    // Still nothing after 6 seconds: offer to try again
+    var slow = setTimeout(function () {
+      if (!done) retryButton(function () { location.reload(); });
+    }, 6000);
     api('GET', 'me').then(function (me) {
+      done = true;
+      clearTimeout(slow);
       show('panel');
+      if (!startedOnce) {
+        startedOnce = true;
+        // Coming back to the page (Safari keeps it in memory): fetch fresh data
+        window.addEventListener('pageshow', function (ev) { if (ev.persisted) location.reload(); });
+      }
       ready(me);
     }, function (e) {
+      done = true;
+      clearTimeout(slow);
+      // A dropped connection: try once more by itself
+      if (!e.status && tries < 1 && e.message !== 'login') {
+        setTimeout(function () { start(ready, tries + 1); }, 1200);
+        return;
+      }
       var note = $('login-note');
       $('title').textContent = 'Log ind';
       if (e.message === 'setup' || e.message === 'noapi') {
@@ -75,7 +125,9 @@
           'med din email, og <a style="text-decoration:underline">prøv igen</a>.';
         note.querySelector('a').href = '/api/admin/login?return=' + encodeURIComponent(back);
       } else {
+        $('title').textContent = title;
         note.textContent = e.message;
+        retryButton(function () { start(ready, 1); });
       }
     });
   }
