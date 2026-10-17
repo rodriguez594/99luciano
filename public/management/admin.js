@@ -3,7 +3,31 @@
 (function () {
   var $ = function (id) { return document.getElementById(id); };
 
+  // The Cloudflare login ran out while the page was open: log in again and come straight back
+  // (at most once a minute, so it can never loop). Unsaved typing on the page is lost, so say so first.
+  var loggedIn = false;
+  function relogin() {
+    var last = 0;
+    try { last = Number(sessionStorage.getItem('luciano:admin-login')) || 0; } catch (x) {}
+    if (Date.now() - last < 60000) return false;
+    try { sessionStorage.setItem('luciano:admin-login', String(Date.now())); } catch (x) {}
+    alert('Du er blevet logget ud. Log ind igen, så kommer du tilbage hertil.');
+    location.href = '/api/admin/login?return=' + encodeURIComponent(location.pathname + location.search + location.hash);
+    return true;
+  }
+
   function api(method, path, data, raw) {
+    return request(method, path, data, raw).catch(function (e) {
+      if (loggedIn && e.message === 'login' && relogin()) {
+        e = new Error('Logger ind igen…');
+      } else if (e.message === 'login') {
+        e = Object.assign(new Error(loggedIn ? 'Du er logget ud. Genindlæs siden for at logge ind igen.' : 'login'), { status: 401 });
+      }
+      throw e;
+    });
+  }
+
+  function request(method, path, data, raw) {
     // Access answers a logged-out request with a redirect to its login page; don't follow it
     var opts = { method: method, headers: {}, redirect: 'manual' };
     if (raw) {
@@ -84,8 +108,9 @@
     var slow = setTimeout(function () {
       if (!done) retryButton(function () { location.reload(); });
     }, 6000);
-    api('GET', 'me').then(function (me) {
+    request('GET', 'me').then(function (me) {
       done = true;
+      loggedIn = true;
       clearTimeout(slow);
       show('panel');
       if (!startedOnce) {

@@ -51,6 +51,8 @@ Pages project → **Custom domains → Set up a custom domain** → `99luciano.d
    - `ACCESS_AUD` = the AUD tag
 5. Redeploy (as in step 2.4).
 
+**Stay logged in longer:** Zero Trust → Access → Applications → the app → Edit → Session duration (e.g. 1 month), and Settings → Authentication → Global session timeout. If the session runs out while a page is open, the page sends you through the login and back.
+
 Now 99luciano.dk/management asks for your email, sends a code, and lets you in. The server checks Cloudflare's signed login on every admin request, so the admin API stays closed if Access isn't set up. The `….pages.dev` address has no login, so /management only works on 99luciano.dk.
 
 ### Optional
