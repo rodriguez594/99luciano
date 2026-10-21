@@ -96,22 +96,10 @@
 /* Confetti */
 .d-confetti { position: fixed; top: -12px; width: 9px; height: 14px; background: #fff; z-index: 50; pointer-events: none; border-radius: 1px; }
 
-/* Focus mode for the Instagram Live: only the bowl and the table */
-body.is-focus .nav, body.is-focus .m-nav, body.is-focus #title, body.is-focus .m-sec, body.is-focus #d-note { display: none; }
-body.is-focus .m--draw { padding-top: 24px; }
-body.is-focus .d-bowl { width: min(100%, 560px); }
-
 @media (prefers-reduced-motion: reduce) {
   .d-note, .d-slip, .d-slip__top { transition-duration: 0.01s !important; }
 }
-/* Wide screen (and a laptop on the live): bowl left, table right */
-@media (min-width: 860px) {
-  .m--draw { max-width: 1120px; }
-  .d-stage { grid-template-columns: 1fr 1fr; grid-template-areas: "bowl table" "bowl actions"; align-items: center; column-gap: 40px; }
-  .d-bowl { grid-area: bowl; width: 100%; max-width: 520px; }
-  .d-table { grid-area: table; align-self: end; }
-  .d-actions { grid-area: actions; align-self: start; }
-}
+
 /* Never let the name show through while the note is folded */
 .d-slip__face, .d-slip__face * { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 .d-slip .d-slip__face--in { visibility: hidden; transition: visibility 0s 0.6s; }
@@ -165,3 +153,58 @@ body.is-demo .d-demo { display: block; }
 .d-bowl { isolation: isolate; }
 .d-float { z-index: 20; }
 .d-theater { z-index: 1000; }
+
+/* ---------- Centered layout ---------- */
+.d-stage { justify-items: center; }
+.d-bowl { width: min(100%, 460px, calc(56vh * 400 / 420)); }
+.d-table { width: min(100%, 460px); }
+
+/* The big full screen button */
+.d-fs-btn { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0 0 18px; }
+.d-fs-icon { position: relative; width: 16px; height: 16px; }
+.d-fs-icon::before, .d-fs-icon::after { content: ""; position: absolute; width: 6px; height: 6px; border: 2.5px solid currentColor; }
+.d-fs-icon::before { left: 0; top: 0; border-right: 0; border-bottom: 0; box-shadow: 10px 10px 0 -2.5px transparent; }
+.d-fs-icon::after { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+
+/* Floating controls, only in full screen */
+.d-fs-bar { display: none; }
+body.is-focus .d-fs-bar {
+  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 12px; right: 12px; z-index: 30;
+  display: flex; align-items: center; gap: 8px;
+}
+.d-fs-count { margin-right: auto; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.16em; color: var(--muted); }
+.d-fs-tool {
+  min-width: 44px; height: 40px; padding: 0 14px; border: 2px solid rgba(255,255,255,0.25); border-radius: 22px;
+  background: rgba(0,0,0,0.5); color: #fff; font: 800 0.6rem/1 var(--font); letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.d-fs-tool:hover { border-color: #fff; }
+.d-fs-tool--close { padding: 0; width: 40px; font-size: 0.9rem; }
+
+/* ---------- Full screen: just the bowl, big and centered, the table under it ---------- */
+body.is-focus { overflow: hidden; }
+body.is-focus .nav, body.is-focus .m-nav, body.is-focus #title, body.is-focus .m-sec, body.is-focus #d-note,
+body.is-focus .d-top, body.is-focus .d-fs-btn, body.is-focus .d-demo, body.is-focus .footer { display: none !important; }
+body.is-focus .m--draw { max-width: none; margin: 0; padding: 0; height: 100vh; height: 100dvh; }
+body.is-focus #panel { height: 100%; }
+body.is-focus .d-stage {
+  height: 100%; margin: 0; padding: calc(64px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh;
+  background: radial-gradient(ellipse 70% 55% at 50% 38%, rgba(255,255,255,0.07), transparent 70%);
+}
+body.is-focus .d-bowl { width: min(94vw, calc(54dvh * 400 / 420), 680px); flex: none; }
+body.is-focus .d-table { width: min(94vw, 560px); min-height: 0; height: 24dvh; flex: none; }
+body.is-focus .d-slip-spot { height: 90%; width: auto; max-width: 90%; }
+body.is-focus .d-actions { min-height: 48px; }
+/* Landscape screen (a laptop or a phone on its side): bowl centered on top, table under it,
+   the buttons beside the table */
+@media (orientation: landscape) and (min-aspect-ratio: 4/3) {
+  body.is-focus .d-stage {
+    display: grid; grid-template-columns: 1fr auto 1fr; grid-template-rows: auto auto;
+    grid-template-areas: ". bowl ." ". table actions"; align-content: center; justify-items: center; column-gap: 24px; row-gap: 2dvh;
+  }
+  body.is-focus .d-bowl { grid-area: bowl; width: calc(60dvh * 400 / 420); }
+  body.is-focus .d-table { grid-area: table; width: min(46vw, 500px); height: 24dvh; }
+  body.is-focus .d-actions { grid-area: actions; justify-self: start; flex-direction: column; align-items: stretch; }
+}
+.d-fs-tool { white-space: nowrap; } .d-fs-count { max-width: 40vw; }

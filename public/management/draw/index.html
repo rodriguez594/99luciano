@@ -35,6 +35,8 @@
     </section>
 
     <div id="panel" hidden>
+      <button type="button" class="btn btn--solid btn--wide d-fs-btn" id="d-focus"><span class="d-fs-icon" aria-hidden="true"></span>Fuld skærm</button>
+
       <div class="d-top">
         <p class="d-count" id="d-count">–</p>
         <div class="d-tools">
@@ -43,7 +45,7 @@
           <button type="button" class="m-chip is-on" id="d-cinema" aria-pressed="true">Filmisk</button>
           <button type="button" class="m-chip is-on" id="d-sound" aria-pressed="true">Lyd</button>
           <button type="button" class="m-mini" id="d-shake">Ryst skålen</button>
-          <button type="button" class="m-mini" id="d-focus">Fuld skærm</button>
+
         </div>
       </div>
       <p class="d-demo">Demo · navnene er opdigtede, og intet bliver gemt</p>
@@ -85,6 +87,14 @@
           <button type="button" class="btn" id="a-clear" hidden>Ryd bordet</button>
         </div>
         <div class="d-float" id="float"></div>
+      </div>
+
+      <!-- Full screen: small floating controls -->
+      <div class="d-fs-bar" id="fs-bar">
+        <span class="d-fs-count" id="fs-count"></span>
+        <button type="button" class="d-fs-tool" id="fs-shake">Ryst</button>
+        <button type="button" class="d-fs-tool" id="fs-sound">Lyd</button>
+        <button type="button" class="d-fs-tool d-fs-tool--close" id="fs-close" aria-label="Luk fuld skærm">✕</button>
       </div>
 
       <section class="m-sec">

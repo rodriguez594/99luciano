@@ -424,22 +424,33 @@
     load();
   });
 
-  $('d-focus').addEventListener('click', function () {
-    var on = !document.body.classList.contains('is-focus');
+  // ---------- full screen (for the Instagram Live) ----------
+
+  function setFocus(on) {
     document.body.classList.toggle('is-focus', on);
-    this.textContent = on ? 'Luk fuld skærm' : 'Fuld skærm';
     var root = document.documentElement;
     try {
-      if (on && root.requestFullscreen) root.requestFullscreen().catch(function () {});
+      if (on && root.requestFullscreen && !document.fullscreenElement) root.requestFullscreen({ navigationUI: 'hide' }).catch(function () {});
+      else if (on && root.webkitRequestFullscreen) root.webkitRequestFullscreen();
       else if (!on && document.fullscreenElement) document.exitFullscreen();
     } catch (e) {}
-  });
+    if (on) window.scrollTo(0, 0);
+    syncFs();
+  }
+  function syncFs() {
+    $('fs-count').textContent = $('d-count').textContent;
+    $('fs-sound').textContent = sound ? 'Lyd til' : 'Lyd fra';
+    $('fs-sound').hidden = !cinema;
+  }
+  $('d-focus').addEventListener('click', function () { setFocus(true); });
+  $('fs-close').addEventListener('click', function () { setFocus(false); });
+  $('fs-shake').addEventListener('click', function () { $('d-shake').click(); });
+  $('fs-sound').addEventListener('click', function () { $('d-sound').click(); syncFs(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.body.classList.contains('is-focus')) setFocus(false); });
   document.addEventListener('fullscreenchange', function () {
-    if (!document.fullscreenElement && document.body.classList.contains('is-focus')) {
-      document.body.classList.remove('is-focus');
-      $('d-focus').textContent = 'Fuld skærm';
-    }
+    if (!document.fullscreenElement && document.body.classList.contains('is-focus')) setFocus(false);
   });
+  new MutationObserver(syncFs).observe($('d-count'), { childList: true, characterData: true, subtree: true });
 
   function confetti() {
     var colors = ['#fff', '#fff', '#e8e0cf', '#bdbdbd', '#d4af37'];
