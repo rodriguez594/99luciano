@@ -118,3 +118,50 @@ body.is-focus .d-bowl { width: min(100%, 560px); }
 .d-slip.is-open .d-slip__face--in { visibility: visible; transition: visibility 0s 0.25s; }
 .d-slip .d-slip__bottom .d-slip__name, .d-slip .d-slip__same { visibility: hidden; transition: visibility 0s 0.6s; }
 .d-slip.is-open .d-slip__bottom .d-slip__name, .d-slip.is-open .d-slip__same { visibility: visible; transition: visibility 0s 0.1s; }
+
+/* ---------- Cinematic reveal ---------- */
+.d-theater { position: fixed; inset: 0; z-index: 60; pointer-events: auto; }
+.d-theater__light {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 46% 40% at 50% 50%, rgba(255,250,235,0.16), rgba(0,0,0,0.94) 62%, #000 100%);
+  opacity: 0; transition: opacity 0.9s ease;
+}
+.d-theater.is-on .d-theater__light { opacity: 1; }
+.d-theater.is-tense .d-theater__light { animation: d-pulse 0.9s ease-in-out infinite; }
+@keyframes d-pulse { 50% { filter: brightness(1.5); } }
+.d-theater.is-leaving .d-theater__light { opacity: 0; transition-duration: 0.8s; }
+.d-theater__holder {
+  position: absolute; left: 50%; top: 50%;
+  translate: -50% -50%;
+  transition: transform 1.1s cubic-bezier(.2,.8,.2,1);
+}
+.d-theater__holder .d-slip { position: absolute; inset: 0; }
+.d-theater__caption {
+  position: absolute; left: 0; right: 0; top: 16%;
+  margin: 0; text-align: center;
+  font-size: clamp(1rem, 4.5vw, 1.6rem); font-weight: 800; letter-spacing: 0.32em; color: #fff;
+  opacity: 0; transform: translateY(12px); transition: opacity 1.2s ease, transform 1.2s ease;
+}
+.d-theater.is-caption .d-theater__caption { opacity: 1; transform: none; }
+.d-theater__flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.d-theater.is-hit .d-theater__flash { animation: d-flash 0.9s ease-out; }
+@keyframes d-flash { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+.d-theater__skip { position: absolute; right: 16px; bottom: calc(16px + var(--sab)); background: rgba(0,0,0,0.6); }
+.d-theater.is-leaving .d-theater__skip, .d-theater.is-leaving .d-theater__caption { opacity: 0; }
+
+/* The slip during the show: the name is there but blurred, then sharp */
+.d-slip.is-cinema { transition: none; }
+.d-slip.is-cinema .d-slip__name { filter: blur(var(--blur, 0px)); transition: filter 1.4s ease, transform 0.5s; }
+.d-slip.is-peek .d-slip__face--in, .d-slip.is-peek .d-slip__bottom .d-slip__name { visibility: visible; transition: filter 1.4s ease; }
+.d-slip.is-hit { animation: d-punch 0.7s cubic-bezier(.2,1.6,.4,1); }
+@keyframes d-punch { 0% { transform: scale(1); } 35% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.d-slip.is-hit { filter: drop-shadow(0 0 36px rgba(255,240,200,0.5)); }
+.d-slip.is-cinema .d-slip__half { box-shadow: none; }
+
+/* Demo banner */
+.d-demo { display: none; margin: 12px 0 0; padding: 10px 14px; background: #fff; color: #000; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.16em; text-align: center; }
+body.is-demo .d-demo { display: block; }
+/* Keep the notes' stacking inside the bowl, under the reveal overlay */
+.d-bowl { isolation: isolate; }
+.d-float { z-index: 20; }
+.d-theater { z-index: 1000; }

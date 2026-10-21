@@ -9,6 +9,39 @@
   var pool = [];        // entries still in the bowl: {key, handles, notes, others}
   var current = null;   // {entry, handle, slip}
   var MAX_NOTES = 180;  // notes drawn in the bowl (the draw itself always uses everyone)
+  var demo = /[?&]demo\b/.test(location.search);
+  var demoOut = {};     // demo: handle → 1 removed | 2 winner (nothing goes to the server)
+  var cinema = pref('cinema', true), sound = pref('sound', true);
+
+  function pref(k, def) {
+    try { var v = localStorage.getItem('luciano:draw-' + k); return v === null ? def : v === '1'; } catch (e) { return def; }
+  }
+  function setPref(k, v) { try { localStorage.setItem('luciano:draw-' + k, v ? '1' : '0'); } catch (e) {} }
+
+  // Made-up people for demo mode: some with a story (2 notes), some reposts without a vote
+  var DEMO = ['mathilde.k', 'oliver_dk', 'freja99', 'noahhh', 'ida.sofie', 'lucas_cph', 'emma.lund', 'william.b', 'clara.mm',
+    'victor_07', 'alma.r', 'karl.jensen', 'sofie_aa', 'oscar.dk', 'ella.n', 'magnus.v', 'agnes__', 'elias.h', 'laura.pp',
+    'malthe_', 'josefine.x', 'august.k', 'nora.l', 'arthur99'];
+  function demoData() {
+    var pool = [], removed = [], winners = [];
+    DEMO.forEach(function (h, i) {
+      var e = { key: 'demo:' + h, handles: [h], notes: i % 4 === 1 ? 2 : 1, repost_only: i % 9 === 5, others: [] };
+      if (e.repost_only) e.notes = 1;
+      if (demoOut[h] === 1) removed.push(e); else if (demoOut[h] === 2) winners.push(e); else pool.push(e);
+    });
+    return { pool: pool, removed: removed, winners: winners, votes: DEMO.length, followers: DEMO.length };
+  }
+  function getPool() {
+    if (demo) return Promise.resolve(demoData());
+    return api('GET', 'draw-pool?campaign=' + C + '&followers=' + (onlyFollowers ? 1 : 0));
+  }
+  function setState(handle, state) {
+    if (demo) {
+      if (state) demoOut[handle] = state; else delete demoOut[handle];
+      return Promise.resolve();
+    }
+    return api('POST', 'draw-mark', { campaign: CAMPAIGN.id, handle: handle, state: state });
+  }
 
   function rand(n) {
     var a = new Uint32Array(1);
@@ -19,13 +52,14 @@
   // ---------- loading ----------
 
   function load() {
-    api('GET', 'draw-pool?campaign=' + C + '&followers=' + (onlyFollowers ? 1 : 0)).then(function (d) {
+    document.body.classList.toggle('is-demo', demo);
+    getPool().then(function (d) {
       pool = d.pool;
       renderBowl();
       renderLists(d);
       var notes = pool.reduce(function (a, e) { return a + e.notes; }, 0);
       $('d-count').textContent = notes + (notes === 1 ? ' seddel' : ' sedler') + ' · ' + pool.length + (pool.length === 1 ? ' deltager' : ' deltagere');
-      $('d-note').textContent = !pool.length
+      $('d-note').textContent = demo ? 'Prøv løs: træk sedler, åbn, fjern og vælg vindere. Slå Demo fra for den rigtige skål.' : !pool.length
         ? (onlyFollowers && d.votes && !d.followers
           ? 'Ingen er markeret som følger endnu. Tjek følgere under Afstemning, eller slå "Kun følgere" fra.'
           : 'Skålen er tom.')
@@ -232,8 +266,16 @@
 
   $('a-reveal').addEventListener('click', function () {
     if (!current) return;
-    current.slip.classList.add('is-open');
-    showActions('open');
+    if (!cinema || !window.DrawCinema) {
+      current.slip.classList.add('is-open');
+      showActions('open');
+      return;
+    }
+    var c = current;
+    showActions(null);
+    DrawCinema.play(c.slip, { sound: sound }).then(function () {
+      if (current === c) showActions('open');
+    });
   });
 
   // Put back: the slip folds up and flies into the bowl
@@ -298,7 +340,7 @@
 
   function mark(c, state) {
     ['a-win', 'a-remove', 'a-back'].forEach(function (id) { $(id).disabled = true; });
-    return api('POST', 'draw-mark', { campaign: CAMPAIGN.id, handle: c.handle, state: state }).then(function () {
+    return setState(c.handle, state).then(function () {
       refreshLists();
     }, function (e) { note(e.message); throw e; }).finally(function () {
       ['a-win', 'a-remove', 'a-back'].forEach(function (id) { $(id).disabled = false; });
@@ -310,7 +352,7 @@
   // ---------- winners and removed ----------
 
   function refreshLists() {
-    api('GET', 'draw-pool?campaign=' + C + '&followers=' + (onlyFollowers ? 1 : 0)).then(renderLists, function () {});
+    getPool().then(renderLists, function () {});
   }
 
   function renderLists(d) {
@@ -335,7 +377,7 @@
       b.addEventListener('click', function () {
         if (current) { note('Ryd bordet først.'); return; }
         b.disabled = true;
-        api('POST', 'draw-mark', { campaign: CAMPAIGN.id, handle: r.handles[0], state: 0 }).then(load, function (e) { b.disabled = false; note(e.message); });
+        setState(r.handles[0], 0).then(load, function (e) { b.disabled = false; note(e.message); });
       });
       row.appendChild(b);
       row.appendChild(el('small', null, what));
@@ -344,6 +386,35 @@
   }
 
   // ---------- extras ----------
+
+  function chip(id, on) {
+    $(id).classList.toggle('is-on', on);
+    $(id).setAttribute('aria-pressed', String(on));
+  }
+  chip('d-demo', demo);
+  chip('d-cinema', cinema);
+  chip('d-sound', sound);
+  $('d-sound').hidden = !cinema;
+
+  $('d-demo').addEventListener('click', function () {
+    if (current) { note('Ryd bordet først.'); return; }
+    demo = !demo;
+    demoOut = {};
+    chip('d-demo', demo);
+    history.replaceState(null, '', location.pathname + (demo ? '?demo' : ''));
+    load();
+  });
+  $('d-cinema').addEventListener('click', function () {
+    cinema = !cinema;
+    setPref('cinema', cinema);
+    chip('d-cinema', cinema);
+    $('d-sound').hidden = !cinema;
+  });
+  $('d-sound').addEventListener('click', function () {
+    sound = !sound;
+    setPref('sound', sound);
+    chip('d-sound', sound);
+  });
 
   $('d-followers').addEventListener('click', function () {
     if (current) { note('Ryd bordet først.'); return; }
