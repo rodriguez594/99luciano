@@ -57,6 +57,8 @@
       pool = d.pool;
       renderBowl();
       renderLists(d);
+      syncSwitches();
+      if (!current) showActions(null);
       var notes = pool.reduce(function (a, e) { return a + e.notes; }, 0);
       $('d-count').textContent = notes + (notes === 1 ? ' seddel' : ' sedler') + ' · ' + pool.length + (pool.length === 1 ? ' deltager' : ' deltagere');
       $('d-note').textContent = demo ? 'Prøv løs: træk sedler, åbn, fjern og vælg vindere. Slå Demo fra for den rigtige skål.' : !pool.length
@@ -248,14 +250,49 @@
     return s;
   }
 
+  // The console: pads light up (and can be pressed) when they do something; the LCD says what's going on
+  var stageNow = null;
   function showActions(stage) {
-    $('actions').hidden = !stage;
-    $('a-reveal').hidden = stage !== 'folded';
-    $('a-back').hidden = stage !== 'folded' && stage !== 'open';
-    $('a-win').hidden = stage !== 'open';
-    $('a-remove').hidden = stage !== 'open';
-    $('a-clear').hidden = stage !== 'winner';
+    stageNow = stage;
+    var on = {
+      'a-reveal': stage === 'folded',
+      'a-back': stage === 'folded' || stage === 'open',
+      'a-win': stage === 'open',
+      'a-remove': stage === 'open',
+      'a-clear': stage === 'winner'
+    };
+    Object.keys(on).forEach(function (id) {
+      $(id).disabled = !on[id];
+      $(id).classList.toggle('is-lit', on[id]);
+    });
+    $('c-shake').disabled = !!current || stage === 'reveal';
+    lcd(stage === 'folded' ? 'SEDDEL PÅ BORDET'
+      : stage === 'reveal' ? 'OG VINDEREN ER…'
+        : stage === 'open' && current ? '@' + current.handle.toUpperCase()
+          : stage === 'winner' && current ? 'VINDER: @' + current.handle.toUpperCase()
+            : pool.length ? 'VÆLG EN SEDDEL' : 'SKÅLEN ER TOM');
   }
+  function lcd(t) { $('lcd').textContent = t; }
+
+  // A soft click when a pad is pressed
+  var clickCtx = null;
+  function click() {
+    if (!sound) return;
+    try {
+      clickCtx = clickCtx || new (window.AudioContext || window.webkitAudioContext)();
+      var t = clickCtx.currentTime, o = clickCtx.createOscillator(), g = clickCtx.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(1800, t);
+      o.frequency.exponentialRampToValueAtTime(600, t + 0.03);
+      g.gain.setValueAtTime(0.06, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      o.connect(g); g.connect(clickCtx.destination);
+      o.start(t); o.stop(t + 0.06);
+    } catch (e) {}
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.d-pad, .d-switch'), function (b) {
+    b.addEventListener('pointerdown', function () { if (!b.disabled) click(); });
+  });
 
   function clearTable() {
     current = null;
@@ -272,7 +309,7 @@
       return;
     }
     var c = current;
-    showActions(null);
+    showActions('reveal');
     DrawCinema.play(c.slip, { sound: sound }).then(function () {
       if (current === c) showActions('open');
     });
@@ -404,16 +441,34 @@
     history.replaceState(null, '', location.pathname + (demo ? '?demo' : ''));
     load();
   });
+  function syncSwitches() {
+    $('c-sound').classList.toggle('is-lit', sound);
+    $('c-sound').setAttribute('aria-pressed', String(sound));
+    $('c-cinema').classList.toggle('is-lit', cinema);
+    $('c-cinema').setAttribute('aria-pressed', String(cinema));
+    $('c-sound').disabled = !cinema;
+  }
+  $('c-shake').addEventListener('click', function () {
+    var b = this;
+    b.classList.add('is-lit');
+    setTimeout(function () { b.classList.remove('is-lit'); }, 700);
+    $('d-shake').click();
+  });
+  $('c-sound').addEventListener('click', function () { $('d-sound').click(); });
+  $('c-cinema').addEventListener('click', function () { $('d-cinema').click(); });
+
   $('d-cinema').addEventListener('click', function () {
     cinema = !cinema;
     setPref('cinema', cinema);
     chip('d-cinema', cinema);
     $('d-sound').hidden = !cinema;
+    syncSwitches();
   });
   $('d-sound').addEventListener('click', function () {
     sound = !sound;
     setPref('sound', sound);
     chip('d-sound', sound);
+    syncSwitches();
   });
 
   $('d-followers').addEventListener('click', function () {
@@ -439,13 +494,9 @@
   }
   function syncFs() {
     $('fs-count').textContent = $('d-count').textContent;
-    $('fs-sound').textContent = sound ? 'Lyd til' : 'Lyd fra';
-    $('fs-sound').hidden = !cinema;
   }
   $('d-focus').addEventListener('click', function () { setFocus(true); });
   $('fs-close').addEventListener('click', function () { setFocus(false); });
-  $('fs-shake').addEventListener('click', function () { $('d-shake').click(); });
-  $('fs-sound').addEventListener('click', function () { $('d-sound').click(); syncFs(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.body.classList.contains('is-focus')) setFocus(false); });
   document.addEventListener('fullscreenchange', function () {
     if (!document.fullscreenElement && document.body.classList.contains('is-focus')) setFocus(false);

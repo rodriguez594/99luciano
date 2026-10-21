@@ -208,3 +208,126 @@ body.is-focus .d-actions { min-height: 48px; }
   body.is-focus .d-actions { grid-area: actions; justify-self: start; flex-direction: column; align-items: stretch; }
 }
 .d-fs-tool { white-space: nowrap; } .d-fs-count { max-width: 40vw; }
+
+/* ---------- The mixer console on the table ---------- */
+.d-table { border-radius: 6px 6px 0 0; border-bottom: 0; }
+.d-console {
+  position: relative;
+  width: min(100%, 460px);
+  margin-top: -18px;              /* joined to the table */
+  padding: 18px 18px 16px;
+  display: grid; gap: 14px;
+  border-radius: 4px 4px 14px 14px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #262626, #121212 60%, #0b0b0b);
+  box-shadow: 0 22px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -2px 0 rgba(0,0,0,0.6);
+  transform: perspective(900px) rotateX(10deg);
+  transform-origin: 50% 0;
+}
+.d-screw { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #9a9a9a, #3a3a3a 70%); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
+.d-screw::after { content: ""; position: absolute; left: 1px; right: 1px; top: 3.5px; height: 1px; background: rgba(0,0,0,0.55); transform: rotate(35deg); }
+.d-screw--tl { left: 8px; top: 8px; } .d-screw--tr { right: 8px; top: 8px; }
+.d-screw--bl { left: 8px; bottom: 8px; } .d-screw--br { right: 8px; bottom: 8px; }
+
+.d-lcd {
+  display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 14px;
+  border-radius: 4px; background: linear-gradient(180deg, #0e1a12, #08110b);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.08);
+  font: 700 0.82rem/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.12em; color: #8dffb0;
+  text-shadow: 0 0 8px rgba(120,255,160,0.55); overflow: hidden; white-space: nowrap;
+}
+.d-lcd__label { font-size: 0.55rem; color: rgba(141,255,176,0.45); text-shadow: none; }
+.d-lcd__text { overflow: hidden; text-overflow: ellipsis; text-transform: none; }
+
+.d-pads { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.d-pad {
+  --c: 255,255,255;
+  position: relative; display: grid; place-items: center; align-content: center; gap: 2px;
+  aspect-ratio: 1; min-height: 62px; padding: 6px 4px 4px;
+  border: 0; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(180deg, #3a3a3a, #1b1b1b);
+  color: rgba(255,255,255,0.35);
+  font: 800 0.56rem/1.1 var(--font); letter-spacing: 0.1em; text-transform: uppercase; text-align: center;
+  box-shadow: 0 7px 0 #050505, 0 10px 16px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -3px 6px rgba(0,0,0,0.5);
+  transform: translateY(0); transition: transform 70ms, box-shadow 70ms, background 0.3s, color 0.3s;
+  -webkit-tap-highlight-color: transparent;
+}
+.d-pad small { font-size: 0.42rem; letter-spacing: 0.08em; opacity: 0.8; }
+.d-pad:disabled { cursor: default; }
+.d-pad.is-lit {
+  color: #fff;
+  background: radial-gradient(circle at 50% 60%, rgba(var(--c),0.32), rgba(var(--c),0.08) 70%), linear-gradient(180deg, #3d3d3d, #1d1d1d);
+  box-shadow: 0 7px 0 #050505, 0 10px 16px rgba(0,0,0,0.7), 0 0 22px rgba(var(--c),0.28), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(var(--c),0.5);
+}
+.d-pad.is-lit:active, .d-switch:not(:disabled):active {
+  transform: translateY(6px);
+  box-shadow: 0 1px 0 #050505, 0 2px 6px rgba(0,0,0,0.7), 0 0 30px rgba(var(--c),0.45), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 0 1px rgba(var(--c),0.7);
+}
+.d-pad--white { --c: 255,255,255; } .d-pad--amber { --c: 255,176,40; } .d-pad--green { --c: 60,230,120; }
+.d-pad--red { --c: 255,64,64; } .d-pad--blue { --c: 80,160,255; }
+.d-pad.is-lit.d-pad--white { animation: d-breathe 1.6s ease-in-out infinite; }
+@keyframes d-breathe { 50% { box-shadow: 0 7px 0 #050505, 0 10px 16px rgba(0,0,0,0.7), 0 0 34px rgba(255,255,255,0.45), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(255,255,255,0.8); } }
+
+.d-led { position: absolute; top: 7px; left: 50%; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: #2a2a2a; box-shadow: inset 0 1px 1px rgba(0,0,0,0.6); transition: background 0.3s, box-shadow 0.3s; }
+.d-pad.is-lit .d-led, .d-switch.is-lit .d-led { background: rgb(var(--c)); box-shadow: 0 0 8px rgb(var(--c)), 0 0 2px #fff; }
+
+.d-switches { display: flex; gap: 8px; justify-content: center; }
+.d-switch {
+  --c: 255,176,40;
+  position: relative; padding: 16px 14px 8px; min-width: 70px; border: 0; border-radius: 6px; cursor: pointer;
+  background: linear-gradient(180deg, #2c2c2c, #161616); color: rgba(255,255,255,0.55);
+  font: 800 0.5rem/1 var(--font); letter-spacing: 0.14em; text-transform: uppercase;
+  box-shadow: 0 4px 0 #050505, inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: transform 70ms, box-shadow 70ms;
+}
+.d-switch .d-led { top: 6px; }
+.d-switch:disabled { opacity: 0.4; cursor: default; }
+.d-switch.is-lit { color: #fff; }
+
+@media (max-width: 420px) {
+  .d-pads { gap: 7px; }
+  .d-pad { min-height: 54px; font-size: 0.48rem; border-radius: 8px; }
+  .d-console { padding: 16px 12px 14px; }
+}
+/* In full screen the console sits under the table, centered (also on landscape screens) */
+body.is-focus .d-console { width: min(94vw, 560px); }
+@media (orientation: landscape) and (min-aspect-ratio: 4/3) {
+  body.is-focus .d-stage { grid-template-areas: ". bowl ." ". table ." ". actions ."; row-gap: 0; }
+  body.is-focus .d-bowl { width: calc(50dvh * 400 / 420); margin-bottom: 2dvh; }
+  body.is-focus .d-table { height: 20dvh; }
+  body.is-focus .d-actions { justify-self: center; flex-direction: row; width: min(60vw, 620px); }
+  body.is-focus .d-pads { grid-template-columns: repeat(5, 1fr); }
+  body.is-focus .d-pad { aspect-ratio: auto; min-height: 9dvh; }
+}
+/* Landscape full screen: one compact row on the console (display | pads | switches) so it all fits */
+@media (orientation: landscape) and (min-aspect-ratio: 4/3) {
+  body.is-focus .d-stage { padding-top: calc(56px + env(safe-area-inset-top, 0px)); padding-bottom: 12px; }
+  body.is-focus .d-bowl { width: calc(46dvh * 400 / 420); margin-bottom: 1.5dvh; }
+  body.is-focus .d-table { height: 18dvh; }
+  body.is-focus .d-console { grid-template-columns: minmax(130px, 210px) 1fr auto; align-items: center; width: min(94vw, 980px); padding: 12px 18px; margin-top: -12px; transform: perspective(900px) rotateX(6deg); }
+  body.is-focus .d-pad { min-height: 0; height: clamp(44px, 9dvh, 70px); padding-top: 12px; }
+  body.is-focus .d-switches { flex-direction: row; }
+  body.is-focus .d-switch { min-width: 54px; padding: 15px 10px 7px; }
+  body.is-focus .d-lcd { min-height: 36px; font-size: 0.72rem; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  body.is-focus .d-bowl { width: calc(40dvh * 400 / 420); }
+  body.is-focus .d-table { height: 16dvh; }
+  body.is-focus .d-stage { padding-top: calc(48px + env(safe-area-inset-top, 0px)); }
+  body.is-focus .d-fs-bar { top: 6px; }
+  body.is-focus .d-lcd__label { display: none; }
+}
+/* Portrait full screen: leave room for the whole console */
+@media (orientation: portrait), (max-aspect-ratio: 4/3) {
+  body.is-focus .d-stage { gap: 1.5dvh; padding-top: calc(56px + env(safe-area-inset-top, 0px)); }
+  body.is-focus .d-bowl { width: min(90vw, calc(44dvh * 400 / 420), 640px); }
+  body.is-focus .d-table { height: 20dvh; }
+  body.is-focus .d-console { padding-bottom: 12px; gap: 10px; }
+  body.is-focus .d-pad { aspect-ratio: auto; height: clamp(48px, 7.5dvh, 74px); min-height: 0; padding-top: 12px; }
+}
+@media (orientation: landscape) and (min-aspect-ratio: 4/3) {
+  body.is-focus .d-console { grid-template-columns: minmax(200px, 280px) 1fr auto; margin-top: 0; }
+  body.is-focus .d-table { border-radius: 6px; border-bottom: 2px dashed var(--line); margin-bottom: 10px; }
+  body.is-focus .d-slip-spot { height: 84%; }
+}

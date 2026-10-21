@@ -79,12 +79,23 @@
           <p class="d-table__hint" id="table-hint">Træk en seddel herned, eller tryk på en</p>
           <div class="d-slip-spot" id="spot"></div>
         </div>
-        <div class="d-actions" id="actions" hidden>
-          <button type="button" class="btn btn--solid" id="a-reveal">Åbn</button>
-          <button type="button" class="btn" id="a-back">Læg tilbage</button>
-          <button type="button" class="btn btn--solid" id="a-win" hidden>Vinder</button>
-          <button type="button" class="btn" id="a-remove" hidden>Fjern · ikke i live</button>
-          <button type="button" class="btn" id="a-clear" hidden>Ryd bordet</button>
+        <!-- The mixer console on the front of the table -->
+        <div class="d-actions d-console" id="actions">
+          <span class="d-screw d-screw--tl"></span><span class="d-screw d-screw--tr"></span>
+          <span class="d-screw d-screw--bl"></span><span class="d-screw d-screw--br"></span>
+          <div class="d-lcd" aria-live="polite"><span class="d-lcd__label">99 DRAW</span><span class="d-lcd__text" id="lcd">VÆLG EN SEDDEL</span></div>
+          <div class="d-pads">
+            <button type="button" class="d-pad d-pad--white" id="a-reveal" disabled><i class="d-led"></i><span>Åbn</span></button>
+            <button type="button" class="d-pad d-pad--amber" id="a-back" disabled><i class="d-led"></i><span>Læg tilbage</span></button>
+            <button type="button" class="d-pad d-pad--green" id="a-win" disabled><i class="d-led"></i><span>Vinder</span></button>
+            <button type="button" class="d-pad d-pad--red" id="a-remove" disabled><i class="d-led"></i><span>Fjern</span><small>ikke i live</small></button>
+            <button type="button" class="d-pad d-pad--blue" id="a-clear" disabled><i class="d-led"></i><span>Ryd bordet</span></button>
+          </div>
+          <div class="d-switches">
+            <button type="button" class="d-switch" id="c-shake"><i class="d-led"></i><span>Ryst</span></button>
+            <button type="button" class="d-switch" id="c-sound" aria-pressed="true"><i class="d-led"></i><span>Lyd</span></button>
+            <button type="button" class="d-switch" id="c-cinema" aria-pressed="true"><i class="d-led"></i><span>Filmisk</span></button>
+          </div>
         </div>
         <div class="d-float" id="float"></div>
       </div>
@@ -92,8 +103,6 @@
       <!-- Full screen: small floating controls -->
       <div class="d-fs-bar" id="fs-bar">
         <span class="d-fs-count" id="fs-count"></span>
-        <button type="button" class="d-fs-tool" id="fs-shake">Ryst</button>
-        <button type="button" class="d-fs-tool" id="fs-sound">Lyd</button>
         <button type="button" class="d-fs-tool d-fs-tool--close" id="fs-close" aria-label="Luk fuld skærm">✕</button>
       </div>
 
