@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="da" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>99 LUCIANO | Trækning</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="apple-touch-icon" href="../../assets/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css?v=dev">
+  <link rel="stylesheet" href="../management.css?v=dev">
+  <link rel="stylesheet" href="draw.css?v=dev">
+</head>
+<body>
+  <header class="nav">
+    <a href="../../" class="nav__brand" aria-label="99 LUCIANO">
+      <img src="../../assets/mark-160.png" alt="" width="34" height="31">
+      <span>LUCIANO</span>
+    </a>
+    <a class="m-logout" id="logout" href="/cdn-cgi/access/logout" hidden>Log ud</a>
+  </header>
+
+  <main class="m m--draw">
+    <nav class="m-nav" aria-label="Management">
+      <a href="../dashboard/">Dashboard</a><a href="../vote/">Afstemning</a><a href="../draw/" aria-current="page">Trækning</a><a href="../projects/">Projekter</a><a href="../vault/">Vault</a>
+    </nav>
+    <h1 class="display" id="title">Trækning</h1>
+
+    <section id="login" hidden>
+      <p class="step__note" id="login-note">Henter…</p>
+    </section>
+
+    <div id="panel" hidden>
+      <div class="d-top">
+        <p class="d-count" id="d-count">–</p>
+        <div class="d-tools">
+          <button type="button" class="m-chip is-on" id="d-followers" aria-pressed="true">Kun følgere</button>
+          <button type="button" class="m-mini" id="d-shake">Ryst skålen</button>
+          <button type="button" class="m-mini" id="d-focus">Fuld skærm</button>
+        </div>
+      </div>
+      <p class="step__note" id="d-note" aria-live="polite"></p>
+
+      <div class="d-stage" id="stage">
+        <!-- The glass bowl -->
+        <div class="d-bowl" id="bowl">
+          <svg class="d-glass d-glass--back" viewBox="0 0 400 420" aria-hidden="true">
+            <defs>
+              <radialGradient id="g-in" cx="50%" cy="62%" r="60%">
+                <stop offset="0" stop-color="#fff" stop-opacity="0.02"/>
+                <stop offset="0.8" stop-color="#fff" stop-opacity="0.05"/>
+                <stop offset="1" stop-color="#fff" stop-opacity="0.12"/>
+              </radialGradient>
+            </defs>
+            <path class="d-glass__body" d="M128 66 C 46 112 18 236 56 322 C 96 410 304 410 344 322 C 382 236 354 112 272 66 Z" fill="url(#g-in)"/>
+            <ellipse class="d-glass__rim-back" cx="200" cy="64" rx="76" ry="13"/>
+          </svg>
+          <div class="d-notes" id="notes"></div>
+          <svg class="d-glass d-glass--front" viewBox="0 0 400 420" aria-hidden="true">
+            <path class="d-glass__edge" d="M128 66 C 46 112 18 236 56 322 C 96 410 304 410 344 322 C 382 236 354 112 272 66"/>
+            <path class="d-glass__shine" d="M96 150 C 70 200 66 262 86 312"/>
+            <path class="d-glass__shine d-glass__shine--small" d="M312 140 C 322 158 328 176 330 194"/>
+            <ellipse class="d-glass__rim" cx="200" cy="64" rx="76" ry="13"/>
+          </svg>
+        </div>
+
+        <!-- The table -->
+        <div class="d-table" id="table">
+          <p class="d-table__hint" id="table-hint">Træk en seddel herned, eller tryk på en</p>
+          <div class="d-slip-spot" id="spot"></div>
+        </div>
+        <div class="d-actions" id="actions" hidden>
+          <button type="button" class="btn btn--solid" id="a-reveal">Åbn</button>
+          <button type="button" class="btn" id="a-back">Læg tilbage</button>
+          <button type="button" class="btn btn--solid" id="a-win" hidden>Vinder</button>
+          <button type="button" class="btn" id="a-remove" hidden>Fjern · ikke i live</button>
+          <button type="button" class="btn" id="a-clear" hidden>Ryd bordet</button>
+        </div>
+        <div class="d-float" id="float"></div>
+      </div>
+
+      <section class="m-sec">
+        <p class="label" id="w-count">Vindere</p>
+        <div id="winners" class="m-list m-voters"></div>
+        <p class="label" id="r-count" style="margin-top:36px">Fjernet</p>
+        <div id="removed" class="m-list m-voters"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../../main.js?v=dev"></script>
+  <script src="../../giveaway/config.js?v=dev"></script>
+  <script src="../admin.js?v=dev"></script>
+  <script src="draw.js?v=dev"></script>
+</body>
+</html>

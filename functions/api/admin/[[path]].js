@@ -333,6 +333,64 @@ export const onRequest = handle(async (context) => {
       })));
     }
 
+    // ---------- the live draw (glass bowl at /management/draw) ----------
+
+    // One entry per person (votes flagged as the same person share one), 2 notes with a confirmed story.
+    // followers=0 puts everyone in the bowl, not only checked followers.
+    case 'GET draw-pool': {
+      const c = await getCampaign(DB, q('campaign'));
+      const onlyFollowers = q('followers') !== '0';
+      const { votes, groups } = await votesWithGroups(DB, c.id);
+      const byGroup = new Map();
+      for (const v of votes) {
+        const g = groups.get(v.id);
+        const e = byGroup.get(g) || { key: String(g), handles: [], all: [], story: false, state: 0 };
+        e.all.push(v.handle);
+        if (!onlyFollowers || v.verified) e.handles.push(v.handle);
+        if (v.story) e.story = true;
+        e.state = Math.max(e.state, v.draw_state || 0);
+        byGroup.set(g, e);
+      }
+      const entries = [...byGroup.values()].filter((e) => e.handles.length);
+      // Confirmed reposts from people who haven't voted: one note each (the double chance needs a vote)
+      const voted = new Set(votes.map((v) => v.handle));
+      const reps = await DB.prepare('SELECT handle, draw_state FROM reposts WHERE campaign = ? AND confirmed = 1').bind(c.id).all();
+      for (const r of reps.results) {
+        if (voted.has(r.handle)) continue;
+        entries.push({ key: 'r:' + r.handle, handles: [r.handle], all: [r.handle], story: false, repost_only: true, state: r.draw_state || 0 });
+      }
+      return json({
+        only_followers: onlyFollowers,
+        votes: votes.length,
+        followers: votes.filter((v) => v.verified).length,
+        pool: entries.filter((e) => e.state === 0).map((e) => ({
+          key: e.key, handles: e.handles, notes: e.story ? 2 : 1, repost_only: !!e.repost_only, others: e.all.filter((h) => !e.handles.includes(h)),
+        })),
+        removed: entries.filter((e) => e.state === 1).map((e) => ({ key: e.key, handles: e.handles })),
+        winners: entries.filter((e) => e.state === 2).map((e) => ({ key: e.key, handles: e.handles })),
+      });
+    }
+
+    // POST draw-mark {campaign, handle, state: 0 back in the bowl | 1 removed | 2 winner}
+    // Applies to everyone in the same group, so a person's other notes leave the bowl too.
+    case 'POST draw-mark': {
+      const b = await body(request);
+      const c = await getCampaign(DB, b.campaign);
+      const state = [0, 1, 2].includes(Number(b.state)) ? Number(b.state) : 0;
+      const h = normalizeHandle(b.handle);
+      const { votes, groups } = await votesWithGroups(DB, c.id);
+      const v = votes.find((x) => x.handle === h);
+      if (!v) {
+        // A repost without a vote
+        const res = await DB.prepare('UPDATE reposts SET draw_state = ? WHERE campaign = ? AND handle = ?').bind(state, c.id, h).run();
+        if (!res.meta.changes) throw new HttpError(404, 'Personen findes ikke.');
+        return json({ ok: true });
+      }
+      const ids = votes.filter((x) => groups.get(x.id) === groups.get(v.id)).map((x) => x.id);
+      await DB.batch(ids.map((id) => DB.prepare('UPDATE votes SET draw_state = ? WHERE id = ?').bind(state, id)));
+      return json({ ok: true });
+    }
+
     // ---------- gift cards for voting in several rounds ----------
 
     // Everyone with how many rounds they voted in; eligible = at least the minimum

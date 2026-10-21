@@ -608,3 +608,8 @@ a.m-card:hover { border-color: var(--text); }
 .m-vbar .m-bar { height: 10px; }
 @media (max-width: 480px) { .m-drop { grid-template-columns: 60px 1fr; } .m-stats--4 { grid-template-columns: repeat(2, 1fr); } }
 #login-retry { margin-top: 18px; }
+/* Five tabs: fit them on a phone */
+@media (max-width: 600px) {
+  .m-nav { gap: 4px; }
+  .m-nav a { flex: 1; padding: 10px 4px; text-align: center; letter-spacing: 0.06em; font-size: 0.52rem; }
+}

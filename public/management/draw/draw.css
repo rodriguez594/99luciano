@@ -1,0 +1,120 @@
+/* /management/draw: a glass bowl with paper notes, a table, and the slip that unfolds */
+.m--draw { max-width: 900px; }
+.d-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; }
+.d-count { margin: 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.14em; color: var(--soft); }
+.d-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.d-stage { position: relative; display: grid; justify-items: center; gap: 18px; margin-top: 18px; padding-bottom: 10px; user-select: none; -webkit-user-select: none; }
+
+/* Bowl */
+.d-bowl { position: relative; width: min(100%, 460px); aspect-ratio: 400 / 420; }
+.d-bowl.is-shaking { animation: d-shake 0.7s cubic-bezier(.36,.07,.19,.97); }
+@keyframes d-shake {
+  10%, 90% { transform: translateX(-3px) rotate(-1deg); }
+  20%, 80% { transform: translateX(6px) rotate(1.5deg); }
+  30%, 50%, 70% { transform: translateX(-10px) rotate(-2deg); }
+  40%, 60% { transform: translateX(10px) rotate(2deg); }
+}
+.d-glass { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.d-glass__body { stroke: none; }
+.d-glass__rim-back { fill: none; stroke: rgba(255,255,255,0.18); stroke-width: 3; }
+.d-glass__edge { fill: none; stroke: rgba(255,255,255,0.55); stroke-width: 3; }
+.d-glass__rim { fill: none; stroke: rgba(255,255,255,0.75); stroke-width: 4; }
+.d-glass__shine { fill: none; stroke: rgba(255,255,255,0.32); stroke-width: 9; stroke-linecap: round; }
+.d-glass__shine--small { stroke-width: 6; stroke: rgba(255,255,255,0.22); }
+.d-glass--front { filter: drop-shadow(0 0 12px rgba(255,255,255,0.08)); }
+.d-notes { position: absolute; inset: 0; }
+
+/* A folded paper note */
+.d-note {
+  position: absolute;
+  width: 13%;
+  aspect-ratio: 1.7;
+  margin: -3.8% 0 0 -6.5%;
+  border-radius: 2px;
+  background: linear-gradient(170deg, #faf6ec 0%, #ebe3d0 100%);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.45);
+  cursor: grab;
+  touch-action: none;
+  transition: left 0.6s cubic-bezier(.2,.8,.2,1), top 0.6s cubic-bezier(.2,.8,.2,1), transform 0.6s cubic-bezier(.2,.8,.2,1), opacity 0.4s;
+}
+.d-note::after { content: ""; position: absolute; left: 6%; right: 6%; top: 50%; height: 1px; background: rgba(0,0,0,0.12); box-shadow: 0 1px 0 rgba(255,255,255,0.6); }
+.d-note:hover { filter: brightness(1.06); }
+.d-stage.is-busy .d-note { cursor: default; }
+.d-note.is-gone { opacity: 0; transform: scale(0.4) rotate(40deg) !important; }
+
+/* The held note (in the float layer, positioned in px) */
+.d-float { position: absolute; inset: 0; pointer-events: none; }
+.d-float .d-note { width: 64px; margin: -19px 0 0 -32px; pointer-events: auto; }
+.d-float .d-note.is-held { transition: transform 0.25s cubic-bezier(.2,.8,.2,1); cursor: grabbing; box-shadow: 0 18px 30px rgba(0,0,0,0.6), 0 2px 6px rgba(0,0,0,0.4); }
+.d-float .d-note.is-flying { transition: left 0.55s cubic-bezier(.2,.8,.2,1), top 0.55s cubic-bezier(.2,.8,.2,1), transform 0.55s cubic-bezier(.2,.8,.2,1), opacity 0.3s; }
+
+/* Table */
+.d-table {
+  position: relative;
+  width: min(100%, 520px);
+  min-height: 230px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--line);
+  border-radius: 6px;
+  background: radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.06), transparent 70%);
+  transition: border-color 0.25s, background 0.25s;
+}
+.d-table.is-over { border-color: #fff; background: radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.14), transparent 70%); }
+.d-table__hint { position: absolute; margin: 0; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.16em; color: var(--muted); text-align: center; padding: 0 16px; transition: opacity 0.3s; }
+.d-table.has-slip .d-table__hint { opacity: 0; }
+.d-slip-spot { position: relative; width: 300px; max-width: 86%; aspect-ratio: 300 / 190; }
+
+/* The slip: folded in half, the top half unfolds to show the name */
+.d-slip { position: absolute; inset: 0; perspective: 900px; transform-origin: 50% 75%; transition: transform 0.55s cubic-bezier(.2,.8,.2,1), opacity 0.45s; }
+.d-slip.is-landing { transform: scale(0.22) rotate(-8deg); opacity: 0.6; }
+.d-slip__half {
+  position: absolute; left: 0; right: 0; height: 50%;
+  background: linear-gradient(175deg, #fbf8f0, #ece4d2);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.d-slip__bottom { bottom: 0; border-radius: 0 0 3px 3px; display: grid; place-items: start center; overflow: hidden; }
+.d-slip__name { margin: 0 12px; color: #111; font-size: clamp(1.1rem, 6vw, 1.9rem); font-weight: 800; letter-spacing: 0.02em; text-transform: none; text-align: center; line-height: 1.05; overflow-wrap: anywhere; transform: translateY(-50%); }
+.d-slip__same { position: absolute; bottom: 8px; left: 0; right: 0; margin: 0; color: #777; font-size: 0.5rem; font-weight: 700; letter-spacing: 0.1em; text-align: center; text-transform: none; }
+.d-slip__top { top: 0; border-radius: 3px 3px 0 0; transform-origin: 50% 100%; transform: rotateX(-180deg); transform-style: preserve-3d; transition: transform 1.1s cubic-bezier(.3,1.25,.4,1); box-shadow: none; background: none; }
+.d-slip__face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 3px 3px 0 0; background: linear-gradient(175deg, #fbf8f0, #ece4d2); overflow: hidden; }
+.d-slip__face--in { display: grid; place-items: end center; }
+.d-slip__face--in .d-slip__name { transform: translateY(50%); }
+/* The outside of the fold, seen while folded */
+.d-slip__face--out { transform: rotateX(180deg); display: grid; place-items: center; background: linear-gradient(185deg, #f3eddf, #e2d8c2); box-shadow: inset 0 -8px 14px rgba(0,0,0,0.08); }
+.d-slip__face--out img { width: 30px; opacity: 0.25; filter: invert(1); }
+.d-slip.is-open .d-slip__top { transform: rotateX(0deg); }
+.d-slip.is-crumple { transform: scale(0.15) rotate(220deg); opacity: 0; transition: transform 0.7s cubic-bezier(.6,0,.8,.4), opacity 0.7s; }
+.d-slip.is-away { transform: translateX(140%) rotate(18deg); opacity: 0; transition: transform 0.6s cubic-bezier(.6,0,.8,.4), opacity 0.6s; }
+.d-slip__stamp { position: absolute; right: -8px; top: 38%; padding: 6px 12px; border: 3px solid #fff; color: #fff; background: #000; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.2em; transform: rotate(12deg) scale(2.4); opacity: 0; transition: transform 0.4s cubic-bezier(.2,1.6,.4,1), opacity 0.2s; z-index: 2; }
+.d-slip.is-winner .d-slip__stamp { transform: rotate(12deg) scale(1); opacity: 1; }
+
+.d-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.d-actions .btn { margin: 0; }
+
+/* Confetti */
+.d-confetti { position: fixed; top: -12px; width: 9px; height: 14px; background: #fff; z-index: 50; pointer-events: none; border-radius: 1px; }
+
+/* Focus mode for the Instagram Live: only the bowl and the table */
+body.is-focus .nav, body.is-focus .m-nav, body.is-focus #title, body.is-focus .m-sec, body.is-focus #d-note { display: none; }
+body.is-focus .m--draw { padding-top: 24px; }
+body.is-focus .d-bowl { width: min(100%, 560px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .d-note, .d-slip, .d-slip__top { transition-duration: 0.01s !important; }
+}
+/* Wide screen (and a laptop on the live): bowl left, table right */
+@media (min-width: 860px) {
+  .m--draw { max-width: 1120px; }
+  .d-stage { grid-template-columns: 1fr 1fr; grid-template-areas: "bowl table" "bowl actions"; align-items: center; column-gap: 40px; }
+  .d-bowl { grid-area: bowl; width: 100%; max-width: 520px; }
+  .d-table { grid-area: table; align-self: end; }
+  .d-actions { grid-area: actions; align-self: start; }
+}
+/* Never let the name show through while the note is folded */
+.d-slip__face, .d-slip__face * { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.d-slip .d-slip__face--in { visibility: hidden; transition: visibility 0s 0.6s; }
+.d-slip.is-open .d-slip__face--in { visibility: visible; transition: visibility 0s 0.25s; }
+.d-slip .d-slip__bottom .d-slip__name, .d-slip .d-slip__same { visibility: hidden; transition: visibility 0s 0.6s; }
+.d-slip.is-open .d-slip__bottom .d-slip__name, .d-slip.is-open .d-slip__same { visibility: visible; transition: visibility 0s 0.1s; }
