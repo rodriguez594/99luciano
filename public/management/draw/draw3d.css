@@ -70,3 +70,20 @@ body.is-focus .d3 { position: fixed; inset: 0; z-index: 20; height: 100vh; heigh
 body.is-focus .d3-keys { display: none; }
 body.is-focus .d3-cams { top: calc(56px + env(safe-area-inset-top, 0px)); }
 body.is-focus .d-fs-bar { z-index: 30; }
+
+.d3-key--gold { --c: 212,175,55; }
+/* Empty bowl: say why, and offer the fix */
+.d3-empty {
+  position: absolute; left: 50%; top: 50%; z-index: 4; transform: translate(-50%, -50%);
+  width: min(88%, 460px); padding: 26px 24px; border-radius: 12px; text-align: center;
+  background: rgba(0,0,0,0.82); border: 1px solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.d3-empty[hidden] { display: none; }
+.d3-empty__title { margin: 0 0 8px; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.08em; }
+.d3-empty__text { margin: 0 0 18px; font-size: 0.72rem; line-height: 1.5; color: var(--soft); text-transform: none; }
+.d3-empty__btn {
+  display: block; width: 100%; height: 46px; margin-top: 8px; border: 0; border-radius: 6px; background: #fff; color: #000; cursor: pointer;
+  font: 800 0.66rem/1 var(--font); letter-spacing: 0.14em; text-transform: uppercase;
+}
+.d3-empty__btn--ghost { background: none; color: #fff; border: 1px solid rgba(255,255,255,0.35); }

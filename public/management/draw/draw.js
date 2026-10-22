@@ -385,16 +385,18 @@ monitorKnob.haloMat.emissiveIntensity = 0.25;
 
 // The five buttons, in a row along the front
 const BUTTONS = [
+  { id: 'pick', label: 'TRÆK', color: 0xd4af37 },
   { id: 'reveal', label: 'ÅBN', color: 0xffffff },
   { id: 'back', label: 'TILBAGE', color: 0xffb028 },
   { id: 'win', label: 'VINDER', color: 0x3ce67a },
   { id: 'remove', label: 'FJERN', color: 0xff4040 },
   { id: 'clear', label: 'RYD', color: 0x50a0ff },
 ];
-const buttonGeo = new RoundedBoxGeometry(0.052, 0.02, 0.04, 3, 0.006);
+const buttonGeo = new RoundedBoxGeometry(0.05, 0.02, 0.04, 3, 0.006);
+const BX = (i) => -0.225 + i * 0.09;
 const ledGeo = new THREE.SphereGeometry(0.0045, 12, 8);
 BUTTONS.forEach((b, i) => {
-  const x = -0.2 + i * 0.1;
+  const x = BX(i);
   const z = 0.095;
   const mat = new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.55, metalness: 0.15, emissive: b.color, emissiveIntensity: 0 });
   const m = new THREE.Mesh(buttonGeo, mat);
@@ -418,7 +420,8 @@ function drawLabels() {
   g.fillStyle = 'rgba(255,255,255,0.88)';
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.font = '800 30px Montserrat, Arial, sans-serif';
-  BUTTONS.forEach((b, i) => g.fillText(b.label, W / 2 + (-0.2 + i * 0.1) * (W / 0.56), 300 + 0.095 * (H / 0.3) + 64));
+  g.font = '800 26px Montserrat, Arial, sans-serif';
+  BUTTONS.forEach((b, i) => g.fillText(b.label, W / 2 + BX(i) * (W / 0.56), 300 + 0.095 * (H / 0.3) + 64));
   g.font = '700 24px Montserrat, Arial, sans-serif';
   g.fillStyle = 'rgba(255,255,255,0.75)';
   g.fillText('RYST', W / 2 + -0.16 * (W / 0.56), H / 2 + (-0.02 + 0.085) * (H / 0.3));
@@ -434,6 +437,7 @@ function drawLabels() {
 function setButtons(stage) {
   stageNow = stage;
   const on = {
+    pick: !stage && !current && pool.length > 0 && notes.length > 0,
     reveal: stage === 'folded',
     back: stage === 'folded' || stage === 'open',
     win: stage === 'open',
@@ -458,6 +462,7 @@ function setButtons(stage) {
         : stage === 'winner' && current ? 'VINDER: @' + current.handle
           : pool.length ? 'VÆLG EN SEDDEL' : 'SKÅLEN ER TOM';
   $('hint').hidden = !!current || !pool.length;
+  $('empty').hidden = pool.length > 0 || !!current;
 }
 
 function pressButton(b) {
@@ -549,14 +554,20 @@ canvas.addEventListener('pointerdown', (e) => {
     return;
   }
   if (camMode === 'free' || current || busy || !pool.length) return;
+  if (!notes.length) return;
   let m = (ray.intersectObjects(notes, false)[0] || {}).object;
   if (!m) {
-    // Hit the glass (or close to it): take the note nearest to that point
+    // Hit the glass (or anywhere else in the scene): take the note nearest to the bowl hit, or a random one
     const g = ray.intersectObject(grabZone, false)[0];
-    if (!g || !notes.length) return;
-    let best = Infinity;
-    const w = new THREE.Vector3();
-    notes.forEach((n) => { n.getWorldPosition(w); const d = w.distanceToSquared(g.point) - w.y * 0.5; if (d < best) { best = d; m = n; } });
+    if (g) {
+      let best = Infinity;
+      const w = new THREE.Vector3();
+      notes.forEach((n) => { n.getWorldPosition(w); const d = w.distanceToSquared(g.point) - w.y * 0.5; if (d < best) { best = d; m = n; } });
+    } else {
+      e.preventDefault();
+      drawNote();
+      return;
+    }
   }
   e.preventDefault();
   canvas.setPointerCapture(e.pointerId);
@@ -609,6 +620,25 @@ function endDrag(e) {
 }
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
+
+// TRÆK: a note rises out of the bowl by itself and lands on the table
+function drawNote() {
+  if (current || busy || !pool.length || !notes.length) return;
+  busy = true;
+  setButtons(stageNow);
+  const m = notes.splice(rand(notes.length), 1)[0];
+  const world = new THREE.Vector3();
+  m.getWorldPosition(world);
+  bowlGroup.remove(m);
+  m.position.copy(world);
+  scene.add(m);
+  const from = m.position.clone(), rot = m.rotation.clone();
+  const up = new THREE.Vector3(BOWL.x, TOP + 0.95, BOWL.z);
+  tween(650, (k) => {
+    m.position.lerpVectors(from, up, k);
+    m.rotation.set(lerp(rot.x, -0.25, k), rot.y + k * 2, lerp(rot.z, 0, k));
+  }, ease.out).then(() => layDown(m, SLIP_HOME.clone()));
+}
 
 function dropInBowl(m) {
   const target = bowlSpot(notes.length).add(BOWL);
@@ -906,7 +936,7 @@ function click() {
   } catch (e) {}
 }
 
-const ACTIONS = { reveal, back: putBack, win: winCurrent, remove: removeCurrent, clear: clearTable };
+const ACTIONS = { pick: drawNote, reveal, back: putBack, win: winCurrent, remove: removeCurrent, clear: clearTable };
 BUTTONS.forEach((b) => $('a-' + b.id).addEventListener('click', () => { if (b.lit && !busy) { pressButton(b); ACTIONS[b.id](); } }));
 $('c-shake').addEventListener('click', () => { if (!current) shake(); });
 
@@ -930,6 +960,10 @@ function load() {
         ? 'Ingen er markeret som følger endnu. Tjek følgere under Afstemning, eller slå "Kun følgere" fra.' : 'Skålen er tom.')
         : (onlyFollowers ? 'Kun dem, du har markeret som følgere, er i skålen.' : 'Alle, der har stemt, er i skålen.') +
           ' Stemt + godkendt story = 2 sedler. Godkendt repost uden stemme = 1 seddel.');
+    $('empty-text').textContent = onlyFollowers && d.votes
+      ? 'Kun dem, du har markeret som følgere, kommer i skålen' + (d.followers ? ', og de er allerede trukket eller fjernet.' : ', og ingen er markeret endnu.')
+      : d.votes ? 'Alle er allerede trukket eller fjernet.' : 'Ingen har stemt endnu.';
+    $('empty-all').hidden = !onlyFollowers || !d.votes;
     if (!current) setButtons(null);
   }, (e) => note(e.message));
 }
@@ -973,6 +1007,8 @@ $('d-demo').addEventListener('click', () => {
   history.replaceState(null, '', location.pathname + (demo ? '?demo' : ''));
   load();
 });
+$('empty-all').addEventListener('click', () => { if (onlyFollowers) $('d-followers').click(); });
+$('empty-demo').addEventListener('click', () => { if (!demo) $('d-demo').click(); });
 $('d-followers').addEventListener('click', () => {
   if (current) { note('Ryd bordet først.'); return; }
   onlyFollowers = !onlyFollowers;
@@ -999,7 +1035,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.body.classList.contains('is-focus')) setFocus(false);
   // Keyboard shortcuts for the live: Space/Enter opens, W winner, R remove, B back, C clear, S shake
   if (e.target.closest && e.target.closest('input, textarea')) return;
-  const k = { ' ': 'reveal', enter: 'reveal', w: 'win', r: 'remove', b: 'back', c: 'clear' }[e.key.toLowerCase()];
+  let k = { ' ': 'reveal', enter: 'reveal', t: 'pick', w: 'win', r: 'remove', b: 'back', c: 'clear' }[e.key.toLowerCase()];
+  if ((k === 'reveal') && !current) k = 'pick';
   if (k) { const b = BUTTONS.find((x) => x.id === k); if (b && b.lit && !busy) { e.preventDefault(); pressButton(b); ACTIONS[k](); } }
   if (e.key.toLowerCase() === 's' && !current) shake();
 });

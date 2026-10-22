@@ -69,11 +69,18 @@
         <p class="d3-caption" id="caption">Og vinderen er…</p>
         <div class="d3-flash" id="flash"></div>
         <button type="button" class="d3-skip" id="skip" hidden>Spring over</button>
+        <div class="d3-empty" id="empty" hidden>
+          <p class="d3-empty__title">Skålen er tom</p>
+          <p class="d3-empty__text" id="empty-text">Kun dem, du har markeret som følgere, kommer i skålen, og ingen er markeret endnu.</p>
+          <button type="button" class="d3-empty__btn" id="empty-all">Put alle, der har stemt, i skålen</button>
+          <button type="button" class="d3-empty__btn d3-empty__btn--ghost" id="empty-demo">Prøv med demo-navne</button>
+        </div>
         <p class="d3-loading" id="loading">Stiller bordet op…</p>
       </div>
 
       <!-- The same buttons as on the mixer, in case the 3D ones are hard to hit -->
       <div class="d3-keys" id="actions">
+        <button type="button" class="d3-key d3-key--gold" id="a-pick" disabled>Træk en seddel</button>
         <button type="button" class="d3-key d3-key--white" id="a-reveal" disabled>Åbn</button>
         <button type="button" class="d3-key d3-key--amber" id="a-back" disabled>Læg tilbage</button>
         <button type="button" class="d3-key d3-key--green" id="a-win" disabled>Vinder</button>
