@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="../../styles.css?v=dev">
   <link rel="stylesheet" href="../management.css?v=dev">
   <link rel="stylesheet" href="draw.css?v=dev">
+  <link rel="stylesheet" href="draw3d.css?v=dev">
 </head>
 <body>
   <header class="nav">
@@ -44,60 +45,41 @@
           <button type="button" class="m-chip is-on" id="d-followers" aria-pressed="true">Kun følgere</button>
           <button type="button" class="m-chip is-on" id="d-cinema" aria-pressed="true">Filmisk</button>
           <button type="button" class="m-chip is-on" id="d-sound" aria-pressed="true">Lyd</button>
-          <button type="button" class="m-mini" id="d-shake">Ryst skålen</button>
+          
 
         </div>
       </div>
       <p class="d-demo">Demo · navnene er opdigtede, og intet bliver gemt</p>
       <p class="step__note" id="d-note" aria-live="polite"></p>
 
-      <div class="d-stage" id="stage">
-        <!-- The glass bowl -->
-        <div class="d-bowl" id="bowl">
-          <svg class="d-glass d-glass--back" viewBox="0 0 400 420" aria-hidden="true">
-            <defs>
-              <radialGradient id="g-in" cx="50%" cy="62%" r="60%">
-                <stop offset="0" stop-color="#fff" stop-opacity="0.02"/>
-                <stop offset="0.8" stop-color="#fff" stop-opacity="0.05"/>
-                <stop offset="1" stop-color="#fff" stop-opacity="0.12"/>
-              </radialGradient>
-            </defs>
-            <path class="d-glass__body" d="M128 66 C 46 112 18 236 56 322 C 96 410 304 410 344 322 C 382 236 354 112 272 66 Z" fill="url(#g-in)"/>
-            <ellipse class="d-glass__rim-back" cx="200" cy="64" rx="76" ry="13"/>
-          </svg>
-          <div class="d-notes" id="notes"></div>
-          <svg class="d-glass d-glass--front" viewBox="0 0 400 420" aria-hidden="true">
-            <path class="d-glass__edge" d="M128 66 C 46 112 18 236 56 322 C 96 410 304 410 344 322 C 382 236 354 112 272 66"/>
-            <path class="d-glass__shine" d="M96 150 C 70 200 66 262 86 312"/>
-            <path class="d-glass__shine d-glass__shine--small" d="M312 140 C 322 158 328 176 330 194"/>
-            <ellipse class="d-glass__rim" cx="200" cy="64" rx="76" ry="13"/>
-          </svg>
+      <!-- The 3D scene: a white table, the glass bowl on it, the mixer, and the camera -->
+      <div class="d3" id="stage">
+        <canvas id="d3c" aria-label="Skålen med sedler på bordet"></canvas>
+        <div class="d3-cams" id="cams" role="group" aria-label="Kamera">
+          <button type="button" class="d3-cam is-on" data-cam="overview">Oversigt</button>
+          <button type="button" class="d3-cam" data-cam="bowl">Skålen</button>
+          <button type="button" class="d3-cam" data-cam="table">Bordet</button>
+          <button type="button" class="d3-cam" data-cam="top">Oppefra</button>
+          <button type="button" class="d3-cam" data-cam="mixer">Mixer</button>
+          <button type="button" class="d3-cam" data-cam="orbit">Rundt</button>
+          <button type="button" class="d3-cam" data-cam="free">Fri</button>
         </div>
+        <p class="d3-status" id="lcd">VÆLG EN SEDDEL</p>
+        <p class="d3-hint" id="hint">Træk en seddel op af skålen og læg den på bordet, eller tryk på en</p>
+        <p class="d3-caption" id="caption">Og vinderen er…</p>
+        <div class="d3-flash" id="flash"></div>
+        <button type="button" class="d3-skip" id="skip" hidden>Spring over</button>
+        <p class="d3-loading" id="loading">Stiller bordet op…</p>
+      </div>
 
-        <!-- The table -->
-        <div class="d-table" id="table">
-          <p class="d-table__hint" id="table-hint">Træk en seddel herned, eller tryk på en</p>
-          <div class="d-slip-spot" id="spot"></div>
-        </div>
-        <!-- The mixer console on the front of the table -->
-        <div class="d-actions d-console" id="actions">
-          <span class="d-screw d-screw--tl"></span><span class="d-screw d-screw--tr"></span>
-          <span class="d-screw d-screw--bl"></span><span class="d-screw d-screw--br"></span>
-          <div class="d-lcd" aria-live="polite"><span class="d-lcd__label">99 DRAW</span><span class="d-lcd__text" id="lcd">VÆLG EN SEDDEL</span></div>
-          <div class="d-pads">
-            <button type="button" class="d-pad d-pad--white" id="a-reveal" disabled><i class="d-led"></i><span>Åbn</span></button>
-            <button type="button" class="d-pad d-pad--amber" id="a-back" disabled><i class="d-led"></i><span>Læg tilbage</span></button>
-            <button type="button" class="d-pad d-pad--green" id="a-win" disabled><i class="d-led"></i><span>Vinder</span></button>
-            <button type="button" class="d-pad d-pad--red" id="a-remove" disabled><i class="d-led"></i><span>Fjern</span><small>ikke i live</small></button>
-            <button type="button" class="d-pad d-pad--blue" id="a-clear" disabled><i class="d-led"></i><span>Ryd bordet</span></button>
-          </div>
-          <div class="d-switches">
-            <button type="button" class="d-switch" id="c-shake"><i class="d-led"></i><span>Ryst</span></button>
-            <button type="button" class="d-switch" id="c-sound" aria-pressed="true"><i class="d-led"></i><span>Lyd</span></button>
-            <button type="button" class="d-switch" id="c-cinema" aria-pressed="true"><i class="d-led"></i><span>Filmisk</span></button>
-          </div>
-        </div>
-        <div class="d-float" id="float"></div>
+      <!-- The same buttons as on the mixer, in case the 3D ones are hard to hit -->
+      <div class="d3-keys" id="actions">
+        <button type="button" class="d3-key d3-key--white" id="a-reveal" disabled>Åbn</button>
+        <button type="button" class="d3-key d3-key--amber" id="a-back" disabled>Læg tilbage</button>
+        <button type="button" class="d3-key d3-key--green" id="a-win" disabled>Vinder</button>
+        <button type="button" class="d3-key d3-key--red" id="a-remove" disabled>Fjern · ikke i live</button>
+        <button type="button" class="d3-key d3-key--blue" id="a-clear" disabled>Ryd bordet</button>
+        <button type="button" class="d3-key" id="c-shake">Ryst skålen</button>
       </div>
 
       <!-- Full screen: small floating controls -->
@@ -118,7 +100,8 @@
   <script src="../../main.js?v=dev"></script>
   <script src="../../giveaway/config.js?v=dev"></script>
   <script src="../admin.js?v=dev"></script>
+  <script type="importmap">{ "imports": { "three": "../vendor/three/three.module.min.js" } }</script>
   <script src="cinema.js?v=dev"></script>
-  <script src="draw.js?v=dev"></script>
+  <script type="module" src="draw.js?v=dev"></script>
 </body>
 </html>

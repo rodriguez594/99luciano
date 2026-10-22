@@ -281,5 +281,17 @@
     });
   }
 
-  window.DrawCinema = { play: play, length: LEN };
+  // The whole score for a reveal that hits at hitMs: pad, heartbeat, riser, drumroll, hit
+  function score(hitMs) {
+    hitMs = hitMs || 11000;
+    var snd = new Sound();
+    snd.pad(0, hitMs + 200);
+    snd.heartbeat(600, hitMs - 2400, 62, 128);
+    snd.riser(hitMs - 4400, hitMs);
+    snd.roll(hitMs - 2400, hitMs);
+    snd.hit(hitMs);
+    return snd;
+  }
+
+  window.DrawCinema = { play: play, length: LEN, score: score };
 })();

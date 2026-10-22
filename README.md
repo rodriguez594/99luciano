@@ -74,10 +74,13 @@ Now 99luciano.dk/management asks for your email, sends a code, and lets you in. 
 
 ## Live draw (/management/draw)
 
-A glass bowl with one folded note per entry, for the Instagram Live. Drag a note onto the table (or tap one), press **Åbn** to unfold it, then **Vinder** (confetti, saved), **Fjern · ikke i live** (the note crumples; all their notes leave the bowl) or **Læg tilbage**. Who a note is gets decided at random the moment it's picked, weighted by notes: a vote with a confirmed story = 2 notes, a confirmed repost without a vote = 1 note. Flagged votes (same person) share one entry. "Kun følgere" (on by default) keeps only checked followers. "Ryst skålen" shakes it; "Fuld skærm" hides everything but the bowl and the table. Winners and removed people are listed below, with undo.
+A 3D scene (three.js, vendored in `public/management/vendor/three/`, meant for a computer): a white table with a glass bowl full of folded paper notes, and a small red audio interface (inspired by a Scarlett Solo) whose buttons run the draw: **ÅBN**, **TILBAGE**, **VINDER**, **FJERN** (not in the live) and **RYD**; the big knob shakes the bowl. Its LEDs light up when a button can be used. Drag a note out of the bowl and drop it on the table (or click the bowl), then open it. Camera angles: Oversigt, Skålen, Bordet, Oppefra, Mixer, Rundt (slow orbit) and Fri (drag to look around). The same buttons sit under the scene, and there are keyboard shortcuts (Space open, W winner, R remove, B back, C clear, S shake).
 
-- **Demo** (or `/management/draw/?demo`): 24 made-up names, some with 2 notes; nothing is sent to the server.
-- **Filmisk** (on by default): "Åbn" plays a ~13 second reveal: dark screen and spotlight, "Og vinderen er…", the note teasing open, the name sharpening out of a blur over a heartbeat, a riser and a drumroll, then a hit (boom, cymbal, chord, fanfare) and a flash. All sound is generated in the browser (`draw/cinema.js`), no music files. **Lyd** turns the sound off; "Spring over" skips to the end.
+Who a note is gets decided at random the moment it's picked, weighted by notes: a vote with a confirmed story = 2 notes, a confirmed repost without a vote = 1 note. Flagged votes (same person) share one entry. "Kun følgere" (on by default) keeps only checked followers. Winners and removed people are saved and listed below, with undo.
+
+- **Demo** (or `/management/draw/?demo`): 24 made-up names, nothing is sent to the server.
+- **Filmisk** (on by default): opening plays a ~13 second reveal: the room dims, the camera moves in low, "Og vinderen er…", the note teases open, the name sharpens out of a blur over a heartbeat, a riser and a drumroll, then a hit with a flash. All sound is generated in the browser (`draw/cinema.js`), no music files. **Lyd** turns the sound off; "Spring over" skips to the end.
+- **Fuld skærm** fills the screen with the scene, for the Instagram Live.
 
 ## Vault (99luciano.dk/vault)
 
