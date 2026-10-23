@@ -5,6 +5,7 @@ import { setFollowers } from '../../../lib/background.js';
 import { normalizeHandle } from '../vote.js';
 import { PROJECT_SECTIONS, projectRoutes, projectList, recentVersions } from '../../../lib/projects.js';
 import { VAULT_SECTIONS, vaultRoutes } from '../../../lib/vault.js';
+import { RELEASE_SECTIONS, releaseRoutes, releaseList } from '../../../lib/releases.js';
 
 const MAX_FILE = 15 * 1024 * 1024;
 
@@ -18,6 +19,7 @@ export const onRequest = handle(async (context) => {
 
   if (PROJECT_SECTIONS.has(section)) return projectRoutes(context, DB, route, id);
   if (VAULT_SECTIONS.has(section)) return vaultRoutes(context, DB, route, id);
+  if (RELEASE_SECTIONS.has(section)) return releaseRoutes(context, DB, route, id);
 
   switch (route) {
     case 'GET me':
@@ -61,7 +63,7 @@ export const onRequest = handle(async (context) => {
     // Everything /management/dashboard shows
     case 'GET dashboard': {
       const c = await getCampaign(DB, q('campaign'));
-      const [votes, songs, signups, projects, recent, latest] = await Promise.all([
+      const [votes, songs, signups, projects, recent, latest, releases] = await Promise.all([
         DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE campaign = ?').bind(c.id).first(),
         DB.prepare(
           `SELECT s.id, s.title, s.cover_key, s.snippet_key, (SELECT COUNT(*) FROM votes v WHERE v.song = s.id) AS votes
@@ -75,7 +77,10 @@ export const onRequest = handle(async (context) => {
              COALESCE(w.handle, (SELECT v.handle FROM votes v WHERE v.campaign = w.campaign AND w.device IS NOT NULL AND v.device = w.device ORDER BY v.id LIMIT 1)) AS handle
            FROM winner_notify w WHERE w.campaign = ? ORDER BY w.id DESC LIMIT 5`
         ).bind(c.id).all(),
+        releaseList(DB),
       ]);
+      const upcoming = releases.filter((r) => r.release_at && Date.parse(r.release_at) > Date.now())
+        .sort((a, b) => a.release_at.localeCompare(b.release_at));
       return json({
         vote: {
           ...campaignOut(c), closed: !!isClosed(c), votes: votes.n, signups: signups.n,
@@ -86,6 +91,8 @@ export const onRequest = handle(async (context) => {
         projects,
         recent,
         notify_latest: latest.results,
+        next_release: upcoming[0] || null,
+        releases: { upcoming: upcoming.length, released: releases.filter((r) => r.release_at && Date.parse(r.release_at) <= Date.now()).length },
       });
     }
 

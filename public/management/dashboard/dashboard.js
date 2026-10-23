@@ -37,6 +37,24 @@
       box.appendChild(row);
     });
 
+    var nr = d.next_release;
+    $('rel-counts').textContent = d.releases.upcoming + ' kommende · ' + d.releases.released + ' udgivet';
+    var rc = $('rel-cover');
+    rc.classList.toggle('is-blank', !(nr && nr.cover_url));
+    rc.style.backgroundImage = nr && nr.cover_url ? 'url("' + nr.cover_url + '")' : '';
+    $('rel-title').textContent = nr ? nr.title : 'Ingen kommende udgivelse';
+    $('rel-when').textContent = nr ? ({ single: 'Single', ep: 'EP', album: 'Album' }[nr.kind]) + ' · ' + Admin.date(nr.release_at, true) : 'Tilføj en under Udgivelser.';
+    clearInterval(window.__relTimer);
+    if (nr) {
+      var tickRel = function () {
+        var s = Math.max(0, Math.floor((Date.parse(nr.release_at) - Date.now()) / 1000));
+        var p2 = function (n) { return ('0' + n).slice(-2); };
+        $('rel-cd').textContent = 'Om ' + (s >= 86400 ? Math.floor(s / 86400) + 'd ' : '') + p2(Math.floor(s / 3600) % 24) + ':' + p2(Math.floor(s / 60) % 60) + ':' + p2(s % 60);
+      };
+      tickRel();
+      window.__relTimer = setInterval(tickRel, 1000);
+    } else $('rel-cd').textContent = '';
+
     $('nf-total').textContent = v.signups + (v.signups === 1 ? ' tilmeldt' : ' tilmeldte');
     var nf = $('nf-latest');
     nf.innerHTML = '';

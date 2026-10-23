@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="da" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>99 LUCIANO | Udgivelser</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+  <link rel="apple-touch-icon" href="../../assets/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles.css?v=dev">
+  <link rel="stylesheet" href="../management.css?v=dev">
+  <link rel="stylesheet" href="releases.css?v=dev">
+</head>
+<body>
+  <header class="nav">
+    <a href="../../" class="nav__brand" aria-label="99 LUCIANO">
+      <img src="../../assets/mark-160.png" alt="" width="34" height="31">
+      <span>LUCIANO</span>
+    </a>
+    <a class="m-logout" id="logout" href="/cdn-cgi/access/logout" hidden>Log ud</a>
+  </header>
+
+  <main class="m m--wide">
+    <nav class="m-nav" aria-label="Management">
+      <a href="../dashboard/">Dashboard</a><a href="../vote/">Afstemning</a><a href="../draw/">Trækning</a><a href="../releases/" aria-current="page">Udgivelser</a><a href="../projects/">Projekter</a><a href="../vault/">Vault</a>
+    </nav>
+    <h1 class="display" id="title">Udgivelser</h1>
+
+    <section id="login" hidden>
+      <p class="step__note" id="login-note">Henter…</p>
+    </section>
+
+    <div id="panel" hidden>
+      <div class="m-quick">
+        <a href="#upcoming"><b id="s-upcoming">0</b><span>Kommende</span></a>
+        <a href="#released"><b id="s-released">0</b><span>Udgivet</span></a>
+        <a href="#released"><b id="s-tracks">0</b><span>Numre</span></a>
+        <a href="#upcoming"><b id="s-countdown">0</b><span>På nedtælling</span></a>
+      </div>
+
+      <!-- The next release, big -->
+      <section class="r-next" id="next" hidden>
+        <div class="r-next__cover art" id="next-cover"></div>
+        <div class="r-next__body">
+          <p class="label">Næste udgivelse</p>
+          <h2 class="r-next__title" id="next-title"></h2>
+          <p class="r-next__meta" id="next-meta"></p>
+          <div class="r-cd" id="next-cd">
+            <div><b data-u="d">0</b><span>Dage</span></div>
+            <div><b data-u="h">00</b><span>Timer</span></div>
+            <div><b data-u="m">00</b><span>Min</span></div>
+            <div><b data-u="s">00</b><span>Sek</span></div>
+          </div>
+          <button type="button" class="m-mini" id="next-open">Åbn</button>
+        </div>
+      </section>
+
+      <!-- New release -->
+      <form class="r-new" id="new">
+        <div class="m-view" id="new-kind" role="group" aria-label="Type">
+          <button type="button" class="m-chip is-on" data-kind="single">Single</button>
+          <button type="button" class="m-chip" data-kind="ep">EP</button>
+          <button type="button" class="m-chip" data-kind="album">Album</button>
+        </div>
+        <input class="m-in" id="new-title" type="text" maxlength="120" placeholder="Titel på ny udgivelse" aria-label="Titel" enterkeyhint="done">
+        <input class="m-in" id="new-date" type="datetime-local" aria-label="Udgivelsesdato">
+        <button class="btn btn--solid" id="new-btn">Tilføj</button>
+      </form>
+      <p class="step__note" id="note" aria-live="polite"></p>
+
+      <section class="m-sec" id="upcoming">
+        <p class="label" id="up-count">Kommende</p>
+        <div class="r-grid" id="up-list"></div>
+      </section>
+      <section class="m-sec" id="released">
+        <p class="label" id="rel-count">Udgivet</p>
+        <div class="r-grid" id="rel-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Edit a release -->
+  <dialog class="m-sheet r-sheet" id="edit">
+    <div class="r-edit">
+      <label class="r-edit__cover art" id="e-cover" title="Skift cover">
+        <input type="file" id="e-cover-input" accept="image/*">
+        <span class="m-cover-hint">Cover</span>
+      </label>
+      <div class="r-edit__head">
+        <div class="m-view" id="e-kind" role="group" aria-label="Type">
+          <button type="button" class="m-chip" data-kind="single">Single</button>
+          <button type="button" class="m-chip" data-kind="ep">EP</button>
+          <button type="button" class="m-chip" data-kind="album">Album</button>
+        </div>
+        <input class="m-in r-edit__title" id="e-title" type="text" maxlength="120" aria-label="Titel">
+        <input class="m-in" id="e-artist" type="text" maxlength="80" placeholder="99 LUCIANO" aria-label="Kunstner">
+        <label class="m-field"><span>Udgives</span><input id="e-date" type="datetime-local"></label>
+        <p class="r-edit__status" id="e-status"></p>
+      </div>
+    </div>
+
+    <p class="m-sublabel">Nedtælling</p>
+    <label class="m-check"><input id="e-countdown" type="checkbox"> <span>Vis på nedtællingssiden</span></label>
+    <label class="m-field" id="e-cd-title-row"><span>Titel på nedtællingen (valgfri)</span><input id="e-cd-title" type="text" maxlength="120" placeholder="Fx Ny single ude om"></label>
+
+    <p class="m-sublabel" id="e-tracks-label">Tracklist</p>
+    <ol class="r-tracks" id="e-tracks"></ol>
+    <form class="r-addtrack" id="e-addtrack">
+      <input class="m-in" id="e-newtrack" type="text" maxlength="120" placeholder="Nyt nummer" aria-label="Nyt nummer" enterkeyhint="done">
+      <button class="m-mini m-mini--solid">+ Tilføj</button>
+    </form>
+
+    <p class="m-sublabel">Links</p>
+    <div class="r-links">
+      <label class="m-field"><span>Spotify</span><input data-link="spotify" type="url" placeholder="https://open.spotify.com/…"></label>
+      <label class="m-field"><span>Apple Music</span><input data-link="apple" type="url" placeholder="https://music.apple.com/…"></label>
+      <label class="m-field"><span>YouTube</span><input data-link="youtube" type="url" placeholder="https://youtube.com/…"></label>
+      <label class="m-field"><span>Pre-save</span><input data-link="presave" type="url" placeholder="https://…"></label>
+    </div>
+
+    <p class="m-sublabel">Noter</p>
+    <textarea class="m-notes" id="e-notes" maxlength="4000" placeholder="Distributør, ISRC, credits, idéer …"></textarea>
+
+    <p class="step__note" id="e-note" aria-live="polite"></p>
+    <div class="m-sheet__actions">
+      <button type="button" class="m-mini m-del" id="e-delete">Slet udgivelse</button>
+      <span style="flex:1"></span>
+      <button type="button" class="m-mini m-mini--solid" id="e-close">Færdig</button>
+    </div>
+  </dialog>
+
+  <script src="../../main.js?v=dev"></script>
+  <script src="../admin.js?v=dev"></script>
+  <script src="releases.js?v=dev"></script>
+</body>
+</html>

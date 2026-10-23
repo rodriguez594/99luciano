@@ -25,7 +25,7 @@
 
   <main class="m">
     <nav class="m-nav" aria-label="Management">
-      <a href="../dashboard/" aria-current="page">Dashboard</a><a href="../vote/">Afstemning</a><a href="../draw/">Trækning</a><a href="../projects/">Projekter</a><a href="../vault/">Vault</a>
+      <a href="../dashboard/" aria-current="page">Dashboard</a><a href="../vote/">Afstemning</a><a href="../draw/">Trækning</a><a href="../releases/">Udgivelser</a><a href="../projects/">Projekter</a><a href="../vault/">Vault</a>
     </nav>
     <h1 class="display" id="title">Dashboard</h1>
 
@@ -50,6 +50,23 @@
         <p class="step__note" id="vote-ends"></p>
         <div class="m-mini-results" id="vote-results"></div>
         <span class="m-card__go">Tilpas og udgiv →</span>
+      </a>
+
+      <!-- Next release -->
+      <a class="m-card d-release" href="../releases/" id="rel-card">
+        <div class="m-card__head">
+          <p class="label">Næste udgivelse</p>
+          <span class="m-pill" id="rel-counts">–</span>
+        </div>
+        <div class="d-release__row">
+          <span class="d-release__cover art is-blank" id="rel-cover"></span>
+          <div>
+            <b class="d-release__title" id="rel-title">Ingen kommende udgivelse</b>
+            <p class="step__note" id="rel-when" style="margin:4px 0 0"></p>
+            <p class="d-release__cd" id="rel-cd"></p>
+          </div>
+        </div>
+        <span class="m-card__go">Alle udgivelser →</span>
       </a>
 
       <!-- Notifications -->

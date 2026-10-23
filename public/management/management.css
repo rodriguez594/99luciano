@@ -613,3 +613,10 @@ a.m-card:hover { border-color: var(--text); }
   .m-nav { gap: 4px; }
   .m-nav a { flex: 1; padding: 10px 4px; text-align: center; letter-spacing: 0.06em; font-size: 0.52rem; }
 }
+
+/* Dashboard: next release */
+.d-release__row { display: grid; grid-template-columns: 92px 1fr; gap: 16px; align-items: center; }
+.d-release__cover { aspect-ratio: 1; }
+.d-release__cover.is-blank { background: radial-gradient(circle closest-side, #111 0 4%, #f2f2f2 4.5% 22%, transparent 22.5%), repeating-radial-gradient(circle closest-side, #0b0b0b 0 1.4%, #181818 1.4% 2.2%); }
+.d-release__title { font-size: 1.2rem; font-weight: 800; overflow-wrap: anywhere; }
+.d-release__cd { margin: 8px 0 0; font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
